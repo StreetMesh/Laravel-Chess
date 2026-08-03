@@ -1,0 +1,47 @@
+<?php
+
+namespace StreetMesh\Chess\Tests;
+
+use Flux\FluxServiceProvider;
+use Livewire\LivewireServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
+use StreetMesh\Chess\ChessServiceProvider;
+use StreetMesh\Protocol\Laravel\ProtocolServiceProvider;
+use StreetMesh\Venue\VenueServiceProvider;
+
+abstract class TestCase extends Orchestra
+{
+    /**
+     * @return array<int, class-string>
+     */
+    protected function getPackageProviders($app): array
+    {
+        // An experience is not standalone: it sits on a venue, which sits on the
+        // protocol. Booting it alone would be testing something nobody runs.
+        return [
+            LivewireServiceProvider::class,
+            FluxServiceProvider::class,
+            ProtocolServiceProvider::class,
+            VenueServiceProvider::class,
+            ChessServiceProvider::class,
+        ];
+    }
+
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
+        $app['config']->set('database.default', 'testing');
+        $app['config']->set('streetmesh.host', 'games.test');
+        $app['config']->set('app.url', 'https://games.test');
+        $app['url']->forceRootUrl('https://games.test');
+        $app['url']->forceScheme('https');
+
+        $app['config']->set('livewire.component_namespaces.layouts', __DIR__.'/fixtures/views/layouts');
+    }
+
+    protected function defineDatabaseMigrations(): void
+    {
+        $this->loadMigrationsFrom(__DIR__.'/../vendor/streetmesh/protocol-laravel/database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../vendor/streetmesh/laravel-venue/database/migrations');
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@streetmesh/chess-hub",
+  "version": "0.0.1",
+  "description": "The chess room, for a StreetMesh hub.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/room.ts",
+  "peerDependencies": {
+    "@streetmesh/hub": "*"
+  },
+  "dependencies": {
+    "chess.js": "^1.0.0"
+  }
+}
