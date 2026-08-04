@@ -90,11 +90,12 @@ new #[Title('Chess')] class extends Component
                     <button
                         type="button"
                         @click="choose(cell.name)"
-                        :disabled="!seat || over"
+                        :disabled="!myMove"
                         :title="cell.piece ? `${cell.white ? 'white' : 'black'} ${cell.piece.name} on ${cell.name}` : cell.name"
                         :class="[
                             cell.dark ? 'bg-amber-700/70 dark:bg-zinc-800' : 'bg-amber-100 dark:bg-zinc-600',
                             selected === cell.name ? 'ring-2 ring-inset ring-emerald-400' : '',
+                            myMove ? 'cursor-pointer' : 'cursor-default',
                         ]"
                         class="relative flex aspect-square w-10 items-center justify-center sm:w-12"
                     >
@@ -120,6 +121,20 @@ new #[Title('Chess')] class extends Component
                         >
                             <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
                         </svg>
+
+                        {{--
+                            Where the piece you are holding may go.
+
+                            A dot on an empty square and a ring around a square
+                            with something on it, so a capture does not hide
+                            behind the piece it would take.
+                        --}}
+                        <span
+                            x-show="isTarget(cell.name)"
+                            :class="cell.piece
+                                ? 'absolute inset-1 rounded-full ring-4 ring-inset ring-emerald-400/70'
+                                : 'absolute size-3 rounded-full bg-emerald-400/70'"
+                        ></span>
                     </button>
                 </template>
             </div>

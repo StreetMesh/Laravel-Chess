@@ -140,6 +140,13 @@ export default function chessTable(ticketUrl, seat) {
         trouble: '',
         selected: null,
         over: false,
+        turn: 'white',
+
+        /**
+         * Every move available right now, as `e2e4`, exactly as the room sent
+         * it. Not derived here — see `isTarget`.
+         */
+        legal: [],
         room: null,
 
         async init() {
@@ -183,6 +190,8 @@ export default function chessTable(ticketUrl, seat) {
             this.room.onStateChange((state) => {
                 this.squares = squaresFrom(state.fen, this.seat === 'black')
                 this.moves = [...state.moves]
+                this.legal = [...state.legal]
+                this.turn = state.turn
                 this.over = state.outcome !== ''
 
                 this.status = state.outcome
@@ -204,25 +213,66 @@ export default function chessTable(ticketUrl, seat) {
         },
 
         /**
+         * Whether this browser may touch the board at all.
+         *
+         * Watchers have no seat, and the player who is not to move has nothing
+         * to do — letting them pick pieces up produces a selection that can
+         * only ever be refused, which reads as the board being broken rather
+         * than as it not being your turn.
+         *
+         * This is politeness, not enforcement. The room refuses a move from
+         * the wrong seat regardless, and has to: this runs on somebody else's
+         * computer.
+         */
+        get myMove() {
+            return Boolean(this.seat) && !this.over && this.turn === this.seat
+        },
+
+        /**
+         * Whether a square is somewhere the selected piece may go.
+         *
+         * A lookup in what the room published, not a calculation. Working it
+         * out here would be a second implementation of chess, and two
+         * implementations are two chances to disagree about who won.
+         */
+        isTarget(square) {
+            return this.selected !== null && this.legal.includes(this.selected + square)
+        },
+
+        /**
+         * Whether there is any move at all from a square.
+         *
+         * What makes a first click land on a piece rather than on scenery —
+         * and it distinguishes your own pieces from your opponent's without
+         * knowing which is which, because only the side to move has moves.
+         */
+        canMoveFrom(square) {
+            return this.legal.some((move) => move.startsWith(square))
+        },
+
+        /**
          * Two clicks: what to move, and where to.
          *
-         * Deliberately not validated here. Clicking a square that cannot move
-         * asks anyway, and the referee says no — which is one code path instead
-         * of two and cannot drift from the rules.
+         * The second click is deliberately not validated. Clicking a square
+         * that cannot be reached asks anyway and the referee says no — one code
+         * path instead of two, and it cannot drift from the rules.
          */
         choose(square) {
-            if (!this.seat || this.over) {
-                return
-            }
-
-            if (this.selected === null) {
-                this.selected = square
-
+            if (!this.myMove) {
                 return
             }
 
             if (this.selected === square) {
                 this.selected = null
+
+                return
+            }
+
+            // Picking up, or changing your mind about which piece. A square
+            // with no moves is not a piece you can play, so it does not become
+            // a selection that could only ever be refused.
+            if (this.selected === null || this.canMoveFrom(square)) {
+                this.selected = this.canMoveFrom(square) ? square : null
 
                 return
             }

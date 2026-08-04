@@ -10,5 +10,8 @@
   },
   "dependencies": {
     "chess.js": "^1.0.0"
+  },
+  "scripts": {
+    "check:rules": "node --experimental-strip-types check-rules.ts"
   }
 }

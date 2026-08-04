@@ -33,6 +33,21 @@ export const ChessState = schema(
     /** `white`, `black`, or empty once nobody is to move. */
     turn: 'string',
 
+    /**
+     * Every move that may be played right now, as `e2e4`.
+     *
+     * Published so a board can show somebody where a piece may go without
+     * working it out. A browser that computed this would be a second
+     * implementation of the rules, and two implementations are two chances to
+     * disagree about who won — so the side that already decides what is legal
+     * is the side that says so.
+     *
+     * Only ever the side to move's, which is the same list the room would
+     * accept. It gives nothing away: it is derivable from the position by
+     * anybody who cares to, and both players can see the position.
+     */
+    legal: ['string'],
+
     /** Empty while playing; otherwise how it ended. */
     outcome: 'string',
     winner: 'string',
@@ -55,10 +70,15 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
       fen: this.game.fen(),
       moves: [],
       turn: 'white',
+      legal: [],
       outcome: '',
       winner: '',
       occupants: new MapSchema<InstanceType<typeof Occupant>>(),
     })
+
+    // White has twenty moves before anybody has done anything, and a board
+    // that showed none of them until the second move would look broken.
+    this.publishLegalMoves()
 
     this.onMessage('move', (client, message: { from?: string; to?: string; promotion?: string }) => {
       this.play(client, message)
@@ -119,6 +139,8 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
     this.state.fen = this.game.fen()
     this.state.turn = this.game.turn() === 'w' ? 'white' : 'black'
 
+    this.publishLegalMoves()
+
     this.settleIfOver()
   }
 
@@ -129,12 +151,32 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
    * venue's job, and the venue asks — this room never calls out, holds no
    * credential, and could not be believed if it did.
    */
+  /**
+   * What may be played from here.
+   *
+   * Recomputed rather than adjusted, because a list of legal moves that is
+   * patched as the game goes on is a rules engine, and there is already one
+   * of those two lines up.
+   */
+  private publishLegalMoves(): void {
+    this.state.legal.splice(0)
+
+    if (this.game.isGameOver()) {
+      return
+    }
+
+    for (const move of this.game.moves({ verbose: true })) {
+      this.state.legal.push(`${move.from}${move.to}`)
+    }
+  }
+
   private settleIfOver(): void {
     if (!this.game.isGameOver()) {
       return
     }
 
     this.state.turn = ''
+    this.state.legal.splice(0)
 
     if (this.game.isCheckmate()) {
       this.state.outcome = 'checkmate'
