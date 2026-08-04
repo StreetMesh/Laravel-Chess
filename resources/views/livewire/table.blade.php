@@ -91,17 +91,35 @@ new #[Title('Chess')] class extends Component
                         type="button"
                         @click="choose(cell.name)"
                         :disabled="!seat || over"
+                        :title="cell.piece ? `${cell.white ? 'white' : 'black'} ${cell.piece.name} on ${cell.name}` : cell.name"
                         :class="[
-                            cell.dark ? 'bg-zinc-600' : 'bg-zinc-300',
+                            cell.dark ? 'bg-amber-700/70 dark:bg-zinc-800' : 'bg-amber-100 dark:bg-zinc-600',
                             selected === cell.name ? 'ring-2 ring-inset ring-emerald-400' : '',
                         ]"
-                        class="relative flex aspect-square w-10 items-center justify-center text-2xl sm:w-12"
+                        class="relative flex aspect-square w-10 items-center justify-center sm:w-12"
                     >
-                        <span
-                            x-text="cell.glyph"
-                            :class="cell.white ? 'text-white' : 'text-zinc-900'"
-                            class="drop-shadow"
-                        ></span>
+                        {{--
+                            Font Awesome Free, CC BY 4.0. Solid-only, so the two
+                            sides share a silhouette and are told apart by fill
+                            and outline, the way a real set is.
+
+                            `paint-order:stroke` puts the outline underneath the
+                            fill, so it reads as an edge rather than as a piece
+                            that has been thinned. Without it a white piece on a
+                            light square is very nearly invisible, which is what
+                            the Unicode glyphs used to give us.
+                        --}}
+                        <svg
+                            x-show="cell.piece"
+                            viewBox="0 0 512 512"
+                            class="size-[65%] overflow-visible [paint-order:stroke]"
+                            :class="cell.white
+                                ? 'fill-white stroke-zinc-900 stroke-[66]'
+                                : 'fill-zinc-900 stroke-zinc-100/80 stroke-[36]'"
+                            aria-hidden="true"
+                        >
+                            <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
+                        </svg>
                     </button>
                 </template>
             </div>
