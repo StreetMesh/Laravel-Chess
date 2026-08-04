@@ -13,6 +13,7 @@
   },
   "scripts": {
     "check:rules": "node --experimental-strip-types check-rules.ts",
-    "check:watching": "node --experimental-strip-types check-watching.ts"
+    "check:watching": "node --experimental-strip-types check-watching.ts",
+    "check:settling": "node --experimental-strip-types check-settling.ts"
   }
 }
