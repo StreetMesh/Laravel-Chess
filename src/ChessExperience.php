@@ -51,6 +51,17 @@ final class ChessExperience implements Experience
     }
 
     /**
+     * Nobody launches a game of chess.
+     *
+     * Narrowed from the interface's nullable, because this always has an
+     * answer — null there means "call it whatever a venue calls things".
+     */
+    public function action(): string
+    {
+        return 'Play';
+    }
+
+    /**
      * Adding, and never altering.
      *
      * A venue that could change a game after the fact could change who won, so
