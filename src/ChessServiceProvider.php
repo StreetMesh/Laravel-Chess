@@ -4,7 +4,7 @@ namespace StreetMesh\Chess;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
-use StreetMesh\Protocol\Laravel\Capabilities\Capabilities;
+use StreetMesh\Venue\Experiences\Experiences;
 
 class ChessServiceProvider extends ServiceProvider
 {
@@ -15,7 +15,11 @@ class ChessServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->app->make(Capabilities::class)->register(new ChessCapability);
+        /*
+         * Registered with the venue rather than with the server. Chess is
+         * something you can do here, not something this server is.
+         */
+        $this->app->make(Experiences::class)->register(new ChessExperience);
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'chess');
 

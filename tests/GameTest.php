@@ -3,7 +3,7 @@
 namespace StreetMesh\Chess\Tests;
 
 use Illuminate\Support\Facades\Http;
-use StreetMesh\Chess\ChessCapability;
+use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Chess\Games;
 use StreetMesh\Protocol\Laravel\Permissions\Delegation;
 use StreetMesh\Protocol\P256;
@@ -35,7 +35,7 @@ class GameTest extends TestCase
             'dpop_key' => Delegation::store(P256::generate()),
             'access_token' => 'a-live-token',
             'refresh_token' => 'a-refresh-token',
-            'scope' => 'atproto '.Scope::forRepo([ChessCapability::COLLECTION], [Scope::CREATE]),
+            'scope' => 'atproto '.Scope::forRepo([ChessExperience::COLLECTION], [Scope::CREATE]),
             'expires_at' => now()->addMinutes(15),
         ]);
     }
@@ -59,7 +59,7 @@ class GameTest extends TestCase
     {
         $game = $this->games()->open($this->player('alice'));
 
-        $this->assertSame(ChessCapability::COLLECTION, $game->experience);
+        $this->assertSame(ChessExperience::COLLECTION, $game->experience);
         $this->assertSame('white', (string) $game->seats()->value('seat'));
     }
 
@@ -96,7 +96,7 @@ class GameTest extends TestCase
         Http::fake(function ($request) use (&$written) {
             $written[] = $request->url();
 
-            return Http::response(['uri' => 'at://did:web:somebody/'.ChessCapability::COLLECTION.'/3abc', 'cid' => 'bafy'], 201);
+            return Http::response(['uri' => 'at://did:web:somebody/'.ChessExperience::COLLECTION.'/3abc', 'cid' => 'bafy'], 201);
         });
 
         $games = $this->games();

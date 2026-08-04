@@ -2,7 +2,7 @@
 
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use StreetMesh\Chess\ChessCapability;
+use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Chess\Games;
 use StreetMesh\Venue\Gatherings\Gathering;
 use StreetMesh\Venue\Visitors;
@@ -17,7 +17,7 @@ new #[Title('Chess')] class extends Component
     public function open(): \Illuminate\Support\Collection
     {
         return Gathering::query()
-            ->where('experience', ChessCapability::COLLECTION)
+            ->where('experience', ChessExperience::COLLECTION)
             ->where('status', Gathering::OPEN)
             ->withCount('seats')
             ->latest()

@@ -32,7 +32,7 @@ final class Games
      */
     public function open(Delegation $host, string $seat = 'white'): Gathering
     {
-        $game = $this->gatherings->open(ChessCapability::COLLECTION);
+        $game = $this->gatherings->open(ChessExperience::COLLECTION);
 
         $this->gatherings->seat($game, $host, $seat);
 
@@ -90,7 +90,7 @@ final class Games
             try {
                 $written[$seat->seat] = $this->delegations->write(
                     $seat->delegation,
-                    ChessCapability::COLLECTION,
+                    ChessExperience::COLLECTION,
                     $this->claims($game, $seat, $result),
                 )['uri'];
             } catch (Throwable $refused) {
@@ -114,7 +114,7 @@ final class Games
     private function claims(Gathering $game, Seat $seat, array $result): array
     {
         return [
-            'type' => ChessCapability::COLLECTION,
+            'type' => ChessExperience::COLLECTION,
             'venue' => (string) config('streetmesh.host'),
             'game' => $game->key,
 

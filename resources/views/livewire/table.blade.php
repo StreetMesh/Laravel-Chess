@@ -2,7 +2,7 @@
 
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use StreetMesh\Chess\ChessCapability;
+use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Venue\Gatherings\Gathering;
 use StreetMesh\Venue\Visitors;
 
@@ -18,7 +18,7 @@ new #[Title('Chess')] class extends Component
     public function game(): ?Gathering
     {
         return Gathering::query()
-            ->where('experience', ChessCapability::COLLECTION)
+            ->where('experience', ChessExperience::COLLECTION)
             ->where('key', $this->key)
             ->first();
     }
