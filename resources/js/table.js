@@ -213,6 +213,23 @@ export default function chessTable(ticketUrl, seat) {
         },
 
         /**
+         * Let go of the seat when this component goes away.
+         *
+         * Navigating away with `wire:navigate` never unloads the page, so
+         * nothing closes the socket on its own — the old connection sits in the
+         * room holding the chair, and coming back is refused as somebody
+         * already sitting there. A full reload appeared to fix it because
+         * unloading is the only thing that was closing anything.
+         *
+         * The hub no longer depends on this happening; a browser that crashes
+         * cannot run it, and that has to work too.
+         */
+        destroy() {
+            this.room?.leave()
+            this.room = null
+        },
+
+        /**
          * Whether this browser may touch the board at all.
          *
          * Watchers have no seat, and the player who is not to move has nothing
