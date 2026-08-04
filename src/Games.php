@@ -48,6 +48,14 @@ final class Games
      */
     public function join(Gathering $game, Delegation $visitor): Seat
     {
+        // Somebody already at this table is returning to their own chair, not
+        // taking a second one.
+        $already = $this->gatherings->seatOf($game, $visitor);
+
+        if ($already !== null) {
+            return $this->gatherings->seat($game, $visitor, $already->seat);
+        }
+
         foreach (['white', 'black'] as $seat) {
             if (! $this->taken($game, $seat)) {
                 return $this->gatherings->seat($game, $visitor, $seat);

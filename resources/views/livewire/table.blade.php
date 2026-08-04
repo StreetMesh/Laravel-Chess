@@ -4,6 +4,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Venue\Gatherings\Gathering;
+use StreetMesh\Venue\Gatherings\Gatherings;
 use StreetMesh\Venue\Visitors;
 
 new #[Title('Chess')] class extends Component
@@ -35,7 +36,9 @@ new #[Title('Chess')] class extends Component
             return '';
         }
 
-        return (string) ($game->seats()->where('delegation_id', $visitor->id)->value('seat') ?? '');
+        // Asked by who they are. Keyed on the delegation, somebody who came
+        // back through the door was shown as watching their own game.
+        return (string) (app(Gatherings::class)->seatOf($game, $visitor)?->seat ?? '');
     }
 };?>
 
