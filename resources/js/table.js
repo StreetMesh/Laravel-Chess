@@ -131,7 +131,7 @@ function squaresFrom(fen, flipped) {
     return ordered.map((cell) => ({ ...cell, dark: (cell.rank + cell.file) % 2 === 1 }))
 }
 
-export default function chessTable(ticketUrl, seat) {
+export default function chessTable(ticketUrl, settleUrl, seat) {
     return {
         seat,
         squares: squaresFrom('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', seat === 'black'),
@@ -148,6 +148,7 @@ export default function chessTable(ticketUrl, seat) {
          */
         legal: [],
         room: null,
+        settling: false,
 
         async init() {
             let admitted
@@ -199,6 +200,10 @@ export default function chessTable(ticketUrl, seat) {
                         ? `${state.winner} wins by ${state.outcome}`
                         : `Drawn — ${state.outcome}`
                     : `${state.turn} to move`
+
+                if (this.over) {
+                    this.settle()
+                }
             })
 
             // A refusal is an answer, and belongs on screen rather than in a log.
@@ -210,6 +215,39 @@ export default function chessTable(ticketUrl, seat) {
             this.room.onLeave(() => {
                 this.status = 'Disconnected'
             })
+        },
+
+        /**
+         * Tell the venue there is something to write down.
+         *
+         * The hub cannot do this itself: it decided the result and holds no key
+         * to sign it with, so the record has to be written by the venue. All
+         * this says is "go and look" — what happened comes from the hub when
+         * the venue asks, so nothing here is trusted with the outcome.
+         *
+         * Once per board. Both players and every watcher will say it, which is
+         * the point: it only takes one of them still having the page open, and
+         * the venue ignores the rest.
+         */
+        async settle() {
+            if (this.settling) {
+                return
+            }
+
+            this.settling = true
+
+            try {
+                await fetch(settleUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                        Accept: 'application/json',
+                    },
+                })
+            } catch (unreachable) {
+                // The venue keeps the game open, so the next person to open the
+                // board asks again. Nothing is lost by this failing quietly.
+            }
         },
 
         /**

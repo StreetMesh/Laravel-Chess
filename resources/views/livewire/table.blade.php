@@ -69,7 +69,7 @@ new #[Title('Chess')] class extends Component
         --}}
         <div
             wire:ignore
-            x-data="chessTable(@js(route('venue.ticket', $game->key)), @js($this->seat()))"
+            x-data="chessTable(@js(route('venue.ticket', $game->key)), @js(route('chess.settle', $game->key)), @js($this->seat()))"
             class="flex flex-col items-center gap-4"
         >
             <template x-if="trouble">

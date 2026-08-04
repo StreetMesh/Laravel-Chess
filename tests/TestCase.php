@@ -40,6 +40,11 @@ abstract class TestCase extends Orchestra
          * own.
          */
         $app->instance(Network::class, new OfflineNetwork);
+
+        // Somewhere that is not anywhere. The network above is faked, so
+        // nothing goes here; this only has to be set for the venue to be
+        // willing to ask at all.
+        $app['config']->set('streetmesh.venue.hub', 'wss://hub.invalid');
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
         $app['config']->set('streetmesh.host', 'games.test');

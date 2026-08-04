@@ -152,6 +152,30 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
    * credential, and could not be believed if it did.
    */
   /**
+   * What the venue will write down, once there is something to write.
+   *
+   * Null until the game is actually over, because the venue signs this into
+   * somebody's own records and a result signed early is a lie that outlives
+   * the game.
+   *
+   * The moves as well as the outcome, so the record is the game rather than
+   * the scoreline — a record you can replay is worth keeping, and one that
+   * says only "white won" is barely worth signing.
+   */
+  result(): Record<string, unknown> | null {
+    if (this.state.outcome === '') {
+      return null
+    }
+
+    return {
+      outcome: this.state.outcome,
+      winner: this.state.winner,
+      moves: [...this.state.moves],
+      fen: this.state.fen,
+    }
+  }
+
+  /**
    * What may be played from here.
    *
    * Recomputed rather than adjusted, because a list of legal moves that is
