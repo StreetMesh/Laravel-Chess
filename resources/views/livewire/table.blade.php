@@ -160,7 +160,15 @@ new #[Title('Chess')] class extends Component
 
             <div class="flex w-full items-center justify-between gap-4">
                 <flux:text>
-                    <span x-show="!seat">{{ __('Watching') }}</span>
+                    {{--
+                        Watching, said the same way playing is: a mark, then the
+                        word, in bold. Grey because it is the one status that is
+                        not a side — there is no colour to be.
+                    --}}
+                    <span x-show="!seat" class="flex items-center gap-3 font-semibold">
+                        <flux:icon name="eye" class="size-4 shrink-0 text-slate-400" />
+                        {{ __('Watching') }}
+                    </span>
 
                     {{--
                         Which side you are, in the colour you are. The knight is
