@@ -51,10 +51,7 @@ new #[Title('Chess')] class extends Component
             <flux:callout.text>{{ __('It may have finished, or the link may be wrong.') }}</flux:callout.text>
         </flux:callout>
     @else
-        <div class="flex items-center justify-between gap-4">
-            <flux:heading size="xl">{{ __('Chess') }}</flux:heading>
-            <flux:button :href="route('chess.lobby')" variant="ghost" wire:navigate>{{ __('Back') }}</flux:button>
-        </div>
+        <flux:heading size="xl">{{ __('Chess') }}</flux:heading>
 
         {{--
             The board is drawn and driven by the hub, not by Livewire.
