@@ -1,7 +1,7 @@
 /**
- * Three sounds: a piece picked up, set down, and taken.
+ * Four sounds: a piece picked up, put back, set down, and taken.
  *
- * Made rather than loaded. Three short noises are a few lines of arithmetic and
+ * Made rather than loaded. Four short noises are a few lines of arithmetic and
  * no files, which keeps installing this experience one step — a package that
  * needed audio assets served would need the host to know about them, and a
  * package that pulled them from somewhere else would need the host to be
@@ -11,8 +11,10 @@
  * other. Setting a piece down is wood on wood: low, short, over immediately.
  * Taking one has an edge on it — the same knock with something scraping across
  * the top — because it is the move you want to notice from across the room.
- * Lifting one is the lightest of the three and the only one that is not an
- * impact: nothing has landed yet.
+ * Lifting one is the lightest and the only one that is not an impact: nothing
+ * has landed yet. Putting it back is that sound falling instead of rising —
+ * the same gesture undone, and quieter than either, because changing your mind
+ * is not an event.
  */
 
 /**
@@ -112,6 +114,46 @@ export function lift() {
     body.connect(bodyShape).connect(ctx.destination)
     body.start(at)
     body.stop(at + 0.06)
+}
+
+/**
+ * A piece put back where it was.
+ *
+ * `lift` upside down: the same tick with the pitch falling instead of holding,
+ * and quieter than any of the others. Changing your mind is not an event, and
+ * it should not sound like one — but silence would leave you wondering whether
+ * the board had heard you.
+ */
+export function drop() {
+    const ctx = context()
+    const at = ctx.currentTime
+
+    const tick = noise(ctx, 0.012)
+
+    const edge = ctx.createBiquadFilter()
+    edge.type = 'highpass'
+    edge.frequency.value = 1800
+
+    const shape = ctx.createGain()
+    shape.gain.setValueAtTime(0.045, at)
+    shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.03)
+
+    tick.connect(edge).connect(shape).connect(ctx.destination)
+    tick.start(at)
+
+    // Falling where a lift holds steady, which is the whole of the difference.
+    const body = ctx.createOscillator()
+    body.type = 'sine'
+    body.frequency.setValueAtTime(430, at)
+    body.frequency.exponentialRampToValueAtTime(260, at + 0.06)
+
+    const bodyShape = ctx.createGain()
+    bodyShape.gain.setValueAtTime(0.04, at)
+    bodyShape.gain.exponentialRampToValueAtTime(0.0006, at + 0.07)
+
+    body.connect(bodyShape).connect(ctx.destination)
+    body.start(at)
+    body.stop(at + 0.08)
 }
 
 /**

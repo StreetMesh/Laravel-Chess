@@ -11,7 +11,7 @@
  */
 
 import { Client } from 'colyseus.js'
-import { capture, lift, permit, place } from './sounds.js'
+import { capture, drop, lift, permit, place } from './sounds.js'
 
 /**
  * Piece artwork from Font Awesome Free, used under CC BY 4.0.
@@ -485,8 +485,10 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
                 return
             }
 
+            // Putting back the piece you were holding.
             if (this.selected === square) {
                 this.selected = null
+                drop()
 
                 return
             }
