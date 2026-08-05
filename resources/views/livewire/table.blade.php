@@ -42,7 +42,7 @@ new #[Title('Chess')] class extends Component
     }
 };?>
 
-<div class="flex flex-col gap-6 p-6">
+<div class="flex flex-col gap-6 p-6 max-sm:px-0">
     @php($game = $this->game())
 
     @if ($game === null)
@@ -51,8 +51,6 @@ new #[Title('Chess')] class extends Component
             <flux:callout.text>{{ __('It may have finished, or the link may be wrong.') }}</flux:callout.text>
         </flux:callout>
     @else
-        <flux:heading size="xl">{{ __('Chess') }}</flux:heading>
-
         {{--
             The board is drawn and driven by the hub, not by Livewire.
 
@@ -69,13 +67,18 @@ new #[Title('Chess')] class extends Component
             x-data="chessTable(@js(route('venue.ticket', $game->key)), @js(route('chess.settle', $game->key)), @js($this->seat()))"
             class="flex flex-col items-center gap-4"
         >
+            {{--
+                Everything that is not the board keeps the page's side padding
+                back. Only the board wants the edges; text against the edge of a
+                screen is just text nobody left room for.
+            --}}
             <template x-if="trouble">
-                <flux:callout variant="danger" icon="exclamation-triangle" class="w-full">
+                <flux:callout variant="danger" icon="exclamation-triangle" class="w-full max-sm:mx-6 max-sm:w-[calc(100%-3rem)]">
                     <flux:callout.text x-text="trouble"></flux:callout.text>
                 </flux:callout>
             </template>
 
-            <div class="flex w-full items-center justify-between gap-4">
+            <div class="flex w-full items-center justify-between gap-4 max-sm:px-6">
                 <flux:text>
                     <span x-show="!seat">{{ __('Watching') }}</span>
                     <span x-show="seat" x-text="`You are ${seat}`"></span>
@@ -101,21 +104,21 @@ new #[Title('Chess')] class extends Component
                 On a phone it runs to both edges, which is what buys the squares
                 enough size to aim at with a thumb.
 
-                Measured against the viewport rather than against a parent's
-                padding. Cancelling the padding worked out to a board that was
-                nearly edge to edge and obviously not, because the page's 1.5rem
-                is not the only padding between here and the screen — the layout
-                adds its own, and that is Flux's business rather than something
-                to keep in step with by hand. Half the parent across, then half
-                its own width back, is edge to edge whatever is in between.
+                The page gives up its side padding rather than the board trying
+                to escape it. Two attempts at escaping went wrong in two
+                different ways — cancelling a known padding left the layout's
+                own, and measuring against the viewport put a 100vw element
+                inside Flux's body grid, where the main column is a track rather
+                than the screen. Filling the column is the thing that cannot
+                miss: whatever the column is, the board is that.
 
-                The sides lose their border and their rounding out there, since
-                an edge drawn against the edge of the screen is a line with
-                nothing on the other side of it. The bottom keeps both: that is
-                the part doing the work.
+                The border and the rounding stay at every size. Dropping them on
+                a phone was my idea and a bad one — the board stopped looking
+                like an object at exactly the size where it is the only thing on
+                screen.
             --}}
-            <div class="relative left-1/2 w-screen max-w-none -translate-x-1/2 sm:static sm:left-auto sm:w-full sm:max-w-[26rem] sm:translate-x-0 lg:max-w-[34rem] xl:max-w-[38rem]">
-                <div class="grid grid-cols-8 overflow-hidden border-x-0 border-t-0 border-b-[10px] border-zinc-300 sm:rounded-lg sm:border-2 sm:border-b-[10px] dark:border-zinc-950">
+            <div class="w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
+                <div class="grid grid-cols-8 overflow-hidden rounded-lg border-2 border-b-[10px] border-zinc-300 dark:border-zinc-950">
                     <template x-for="cell in squares" :key="cell.name">
                         <button
                             type="button"
@@ -170,7 +173,7 @@ new #[Title('Chess')] class extends Component
                 </div>
             </div>
 
-            <flux:text class="font-mono text-xs" x-text="moves.join(' ')"></flux:text>
+            <flux:text class="font-mono text-xs max-sm:px-6" x-text="moves.join(' ')"></flux:text>
         </div>
     @endif
 </div>
