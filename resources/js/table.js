@@ -11,6 +11,7 @@
  */
 
 import { Client } from 'colyseus.js'
+import { capture, permit, place } from './sounds.js'
 
 /**
  * Piece artwork from Font Awesome Free, used under CC BY 4.0.
@@ -151,6 +152,16 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         settling: false,
 
         /**
+         * How many moves we have already made a noise about.
+         *
+         * Arriving at a game in progress delivers every move at once, and
+         * playing a sound for each would be a rattle rather than a board. This
+         * starts at whatever was already there and only reacts to what comes
+         * after.
+         */
+        heard: 0,
+
+        /**
          * A knight, for the line saying which side you are playing.
          *
          * The same artwork the board draws, taken from the same table. A second
@@ -199,6 +210,8 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
             this.room.onStateChange((state) => {
                 this.squares = squaresFrom(state.fen, this.seat === 'black')
                 this.moves = [...state.moves]
+
+                this.sound()
                 this.legal = [...state.legal]
                 this.turn = state.turn
                 this.over = state.outcome !== ''
@@ -276,6 +289,29 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         },
 
         /**
+         * One noise per move, and only ever one of the two.
+         *
+         * Which one is already written in the move itself: chess notation puts
+         * an `x` in a capture and nothing in an ordinary move, so the room does
+         * not have to say and this does not have to work it out from the
+         * position.
+         *
+         * Both players hear it, including the one who made it — a move you
+         * cannot hear yourself make feels like it did not land.
+         */
+        sound() {
+            const arrived = this.moves.length
+
+            if (arrived > this.heard) {
+                // Only the last one, however many turned up. Several at once
+                // means somebody has just opened a game already in progress.
+                this.moves[arrived - 1].includes('x') ? capture() : place()
+            }
+
+            this.heard = arrived
+        },
+
+        /**
          * Giving up, which is the one ending a player decides on their own.
          *
          * The room still knows how to conclude a game by agreement — a draw is
@@ -332,6 +368,14 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
          * path instead of two, and it cannot drift from the rules.
          */
         choose(square) {
+            /*
+             * Whatever else this click does, it is the interaction a browser is
+             * waiting for before it will let a page make any sound at all.
+             * Without it the first thing anybody would hear is their opponent's
+             * move, which arrives over a socket and is not an interaction.
+             */
+            permit()
+
             if (!this.myMove) {
                 return
             }

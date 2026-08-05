@@ -1,0 +1,149 @@
+/**
+ * Two sounds: a piece set down, and a piece taken.
+ *
+ * Made rather than loaded. Two short noises are a few lines of arithmetic and
+ * no files, which keeps installing this experience one step — a package that
+ * needed audio assets served would need the host to know about them, and a
+ * package that pulled them from somewhere else would need the host to be
+ * online.
+ *
+ * They are deliberately unalike rather than louder and quieter versions of each
+ * other. Setting a piece down is wood on wood: low, short, over immediately.
+ * Taking one has an edge on it — the same knock with something scraping across
+ * the top — because it is the move you want to notice from across the room.
+ */
+
+/**
+ * One context, made on first use.
+ *
+ * A browser refuses to start audio before somebody has interacted with the
+ * page, so building this at load would produce a context that is permanently
+ * suspended. Made on the first sound instead, which by definition follows
+ * something happening.
+ */
+let audio = null
+
+function context() {
+    audio ??= new (window.AudioContext ?? window.webkitAudioContext)()
+
+    // A tab that has been backgrounded comes back suspended, and a suspended
+    // context plays nothing while reporting no error at all.
+    if (audio.state === 'suspended') {
+        void audio.resume()
+    }
+
+    return audio
+}
+
+/**
+ * Whether this browser will let us make a noise yet.
+ *
+ * Called on the first click anywhere on the board, because that click is the
+ * interaction the autoplay rules are waiting for. Without it the first sound
+ * anybody hears is their opponent's move, which arrives over a socket and is
+ * not an interaction — so it would be silent.
+ */
+export function permit() {
+    context()
+}
+
+/**
+ * A short burst of noise, shaped.
+ *
+ * The scrape in the capture and the tap at the front of both. Generated once
+ * per sound rather than kept, because it is two thousand random numbers and
+ * holding on to them saves nothing worth measuring.
+ */
+function noise(ctx, seconds) {
+    const samples = Math.floor(ctx.sampleRate * seconds)
+    const buffer = ctx.createBuffer(1, samples, ctx.sampleRate)
+    const channel = buffer.getChannelData(0)
+
+    for (let i = 0; i < samples; i++) {
+        // Fading as it goes, so it reads as an impact rather than as static.
+        channel[i] = (Math.random() * 2 - 1) * (1 - i / samples)
+    }
+
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+
+    return source
+}
+
+/**
+ * Wood on wood. Low, short, and over before you have thought about it.
+ */
+export function place() {
+    const ctx = context()
+    const at = ctx.currentTime
+
+    const body = ctx.createOscillator()
+    body.type = 'triangle'
+    body.frequency.setValueAtTime(190, at)
+    body.frequency.exponentialRampToValueAtTime(70, at + 0.09)
+
+    const shape = ctx.createGain()
+    shape.gain.setValueAtTime(0.28, at)
+    shape.gain.exponentialRampToValueAtTime(0.0008, at + 0.11)
+
+    body.connect(shape).connect(ctx.destination)
+    body.start(at)
+    body.stop(at + 0.12)
+
+    // The knock itself, so it lands rather than swells.
+    const tap = noise(ctx, 0.02)
+    const edge = ctx.createBiquadFilter()
+    edge.type = 'lowpass'
+    edge.frequency.value = 2200
+
+    const tapShape = ctx.createGain()
+    tapShape.gain.setValueAtTime(0.12, at)
+    tapShape.gain.exponentialRampToValueAtTime(0.0008, at + 0.03)
+
+    tap.connect(edge).connect(tapShape).connect(ctx.destination)
+    tap.start(at)
+}
+
+/**
+ * A piece taken: the same knock with something dragged across it.
+ *
+ * Not a louder `place`. It is the one move worth noticing without looking, so
+ * it is a different shape rather than a different volume.
+ */
+export function capture() {
+    const ctx = context()
+    const at = ctx.currentTime
+
+    const scrape = noise(ctx, 0.16)
+
+    // Narrow and falling, which is what makes it read as something sliding
+    // rather than as a second knock.
+    const edge = ctx.createBiquadFilter()
+    edge.type = 'bandpass'
+    edge.Q.value = 1.4
+    edge.frequency.setValueAtTime(2600, at)
+    edge.frequency.exponentialRampToValueAtTime(700, at + 0.15)
+
+    const shape = ctx.createGain()
+    shape.gain.setValueAtTime(0.16, at)
+    shape.gain.exponentialRampToValueAtTime(0.0008, at + 0.17)
+
+    scrape.connect(edge).connect(shape).connect(ctx.destination)
+    scrape.start(at)
+
+    // Landing underneath it, a little lower than a plain move so the two are
+    // told apart even where the scrape is lost to a bad speaker.
+    const body = ctx.createOscillator()
+    body.type = 'triangle'
+    body.frequency.setValueAtTime(150, at + 0.02)
+    body.frequency.exponentialRampToValueAtTime(60, at + 0.13)
+
+    const bodyShape = ctx.createGain()
+    bodyShape.gain.setValueAtTime(0.001, at)
+    bodyShape.gain.linearRampToValueAtTime(0.3, at + 0.03)
+    bodyShape.gain.exponentialRampToValueAtTime(0.0008, at + 0.15)
+
+    body.connect(bodyShape).connect(ctx.destination)
+    body.start(at)
+    body.stop(at + 0.16)
+}
