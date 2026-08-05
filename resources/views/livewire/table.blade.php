@@ -144,9 +144,16 @@ new #[Title('Chess')] class extends Component
                             class="relative flex aspect-square w-full items-center justify-center"
                         >
                             {{--
-                                Font Awesome Free, CC BY 4.0. Solid-only, so the two
-                                sides share a silhouette and are told apart by fill
-                                and outline, the way a real set is.
+                                Font Awesome Free, CC BY 4.0. Solid-only, so the
+                                two sides share a silhouette and are told apart
+                                by fill, the way a real set is.
+
+                                One outline, the same dark line on both. The
+                                black pieces are a shade off black so it reads
+                                against them — a black piece outlined in white
+                                was two different drawings of a chess set on one
+                                board, and the white line was doing a job the
+                                square behind it already does.
 
                                 `paint-order:stroke` puts the outline underneath the
                                 fill, so it reads as an edge rather than as a piece
@@ -175,10 +182,8 @@ new #[Title('Chess')] class extends Component
                             <svg
                                 x-show="cell.piece"
                                 viewBox="0 0 512 512"
-                                class="size-[65%] overflow-visible drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
-                                :class="cell.white
-                                    ? 'fill-white stroke-zinc-900 stroke-[66]'
-                                    : 'fill-zinc-900 stroke-zinc-100/80 stroke-[36]'"
+                                class="size-[65%] overflow-visible stroke-zinc-900 stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
+                                :class="cell.white ? 'fill-white' : 'fill-zinc-700'"
                                 aria-hidden="true"
                             >
                                 <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
