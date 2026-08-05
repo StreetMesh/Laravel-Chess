@@ -98,7 +98,7 @@ new #[Title('Chess')] class extends Component
                         not been told about it — Tailwind only generates what it
                         finds written down.
                     --}}
-                    <span x-show="seat" class="flex items-center gap-2 font-semibold">
+                    <span x-show="seat" class="flex items-center gap-3 font-semibold">
                         <svg
                             viewBox="0 0 512 512"
                             class="size-4 shrink-0 overflow-visible stroke-slate-300 stroke-[24] [paint-order:stroke]"
@@ -109,6 +109,27 @@ new #[Title('Chess')] class extends Component
                         </svg>
 
                         <span x-text="`You are ${seat}`"></span>
+
+                        {{--
+                            Beside who you are, because it is the one thing you
+                            can do that is not a move — and it belongs next to
+                            the side it would give up rather than adrift under
+                            the board.
+
+                            It asks before it acts: the label says what a second
+                            press will do, and clicking anywhere else puts the
+                            question away. It cannot be taken back.
+                        --}}
+                        <span x-show="!over" x-data="{ asking: false }" @click.outside="asking = false">
+                            <flux:button
+                                size="xs"
+                                variant="ghost"
+                                @click="asking ? (asking = false, resign()) : asking = true"
+                                x-bind:class="asking ? 'text-rose-600 dark:text-rose-400' : ''"
+                            >
+                                <span x-text="asking ? '{{ __('Really resign?') }}' : '{{ __('Resign') }}'"></span>
+                            </flux:button>
+                        </span>
                     </span>
                 </flux:text>
 
@@ -243,58 +264,6 @@ new #[Title('Chess')] class extends Component
                         </button>
                     </template>
                 </div>
-            </div>
-
-            {{--
-                A draw is the one thing here that needs both people to agree, so
-                it is asked as a question rather than announced.
-            --}}
-            <div x-show="drawOfferedToMe" class="w-full">
-                <flux:callout icon="hand-raised">
-                    <flux:callout.heading>{{ __('A draw is offered') }}</flux:callout.heading>
-                    <flux:callout.text>{{ __('It only counts if you agree.') }}</flux:callout.text>
-
-                    <div class="mt-3 flex gap-2">
-                        <flux:button size="sm" variant="primary" @click="acceptDraw()">{{ __('Agree') }}</flux:button>
-                        <flux:button size="sm" variant="ghost" @click="declineDraw()">{{ __('Play on') }}</flux:button>
-                    </div>
-                </flux:callout>
-            </div>
-
-            {{--
-                Both of these end the game and neither can be taken back, so
-                each asks before it acts: the label says what a second press
-                will do, and clicking anywhere else puts the question away.
-
-                Only for somebody playing, and only while there is a game on.
-            --}}
-            <div
-                x-show="seat && !over"
-                class="flex justify-center gap-2"
-                x-data="{ asking: '' }"
-                @click.outside="asking = ''"
-            >
-                <flux:button
-                    size="sm"
-                    variant="ghost"
-                    x-show="!drawOfferedToMe"
-                    x-bind:disabled="drawOfferedByMe"
-                    @click="asking === 'draw' ? (asking = '', offerDraw()) : asking = 'draw'"
-                    x-bind:class="asking === 'draw' ? 'text-sky-600 dark:text-sky-400' : ''"
-                >
-                    <span x-text="drawOfferedByMe
-                        ? '{{ __('Draw offered') }}'
-                        : asking === 'draw' ? '{{ __('Really offer a draw?') }}' : '{{ __('Offer a draw') }}'"></span>
-                </flux:button>
-
-                <flux:button
-                    size="sm"
-                    variant="ghost"
-                    @click="asking === 'resign' ? (asking = '', resign()) : asking = 'resign'"
-                    x-bind:class="asking === 'resign' ? 'text-rose-600 dark:text-rose-400' : ''"
-                >
-                    <span x-text="asking === 'resign' ? '{{ __('Really resign?') }}' : '{{ __('Resign') }}'"></span>
-                </flux:button>
             </div>
 
             <flux:text class="font-mono text-xs" x-text="moves.join(' ')"></flux:text>

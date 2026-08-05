@@ -147,7 +147,6 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
          * it. Not derived here — see `isTarget`.
          */
         legal: [],
-        drawOfferedBy: '',
         room: null,
         settling: false,
 
@@ -202,7 +201,6 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
                 this.moves = [...state.moves]
                 this.legal = [...state.legal]
                 this.turn = state.turn
-                this.drawOfferedBy = state.drawOfferedBy
                 this.over = state.outcome !== ''
 
                 this.status = state.outcome
@@ -278,39 +276,12 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         },
 
         /**
-         * Whether there is a draw on the table for *you* to answer.
+         * Giving up, which is the one ending a player decides on their own.
          *
-         * Your own offer is not a question you get to answer, which is the only
-         * reason this is not simply "is there an offer".
+         * The room still knows how to conclude a game by agreement — a draw is
+         * a real chess ending and the referee should be able to record one —
+         * but nothing on this screen offers it, so nothing here asks.
          */
-        get drawOfferedToMe() {
-            return Boolean(this.seat) && this.drawOfferedBy !== '' && this.drawOfferedBy !== this.seat
-        },
-
-        /** Whether you are waiting on the other player to answer yours. */
-        get drawOfferedByMe() {
-            return Boolean(this.seat) && this.drawOfferedBy === this.seat
-        },
-
-        /**
-         * The endings the rules have nothing to say about.
-         *
-         * Chess ends by checkmate or stalemate; games end because somebody gave
-         * up or both agreed to stop. The room decides all of it — these only
-         * ask, and a watcher asking is ignored over there.
-         */
-        offerDraw() {
-            this.room?.send('draw-offer')
-        },
-
-        acceptDraw() {
-            this.room?.send('draw-accept')
-        },
-
-        declineDraw() {
-            this.room?.send('draw-decline')
-        },
-
         resign() {
             this.room?.send('resign')
         },
