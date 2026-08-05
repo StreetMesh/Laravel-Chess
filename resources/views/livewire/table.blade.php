@@ -154,15 +154,28 @@ new #[Title('Chess')] class extends Component
                                 light square is very nearly invisible, which is what
                                 the Unicode glyphs used to give us.
 
-                                A small shadow lifts them off the squares. A
-                                filter on the whole element rather than anything
-                                in the artwork, so it follows the silhouette —
-                                outline included — and costs the path nothing.
+                                A shadow lifts them off the squares. Offset
+                                downward and barely blurred, so it falls from
+                                the foot of the piece the way a shadow does for
+                                something standing on a board — a shadow spread
+                                evenly around a shape reads as the shape
+                                floating instead.
+
+                                A filter on the whole element rather than
+                                anything in the artwork, so it follows the
+                                silhouette, outline included, and costs the path
+                                data nothing.
+
+                                Eight-digit hex rather than an rgb() with an
+                                alpha slash, because a bracketed utility that
+                                fails to parse produces no shadow at all rather
+                                than an error — and nothing here can tell the
+                                difference between that and a subtle one.
                             --}}
                             <svg
                                 x-show="cell.piece"
                                 viewBox="0 0 512 512"
-                                class="size-[65%] overflow-visible drop-shadow-sm [paint-order:stroke]"
+                                class="size-[65%] overflow-visible drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
                                 :class="cell.white
                                     ? 'fill-white stroke-zinc-900 stroke-[66]'
                                     : 'fill-zinc-900 stroke-zinc-100/80 stroke-[36]'"
