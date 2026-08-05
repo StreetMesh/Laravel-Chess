@@ -97,9 +97,20 @@ new #[Title('Chess')] class extends Component
                 darker cut of the squares' own colour. It is the whole of the
                 dimensionality: enough to read as a solid object sitting on the
                 page rather than a pattern printed on it.
+
+                On a phone it breaks out of the page's padding and runs to both
+                edges, which is what buys the squares enough size to aim at with
+                a thumb. `calc(100% + 3rem)` against `-mx-6` because the page
+                pads by 1.5rem on each side — a negative margin alone would move
+                the board without widening it.
+
+                The sides lose their border and their rounding out there, since
+                an edge drawn against the edge of the screen is a line with
+                nothing on the other side of it. The bottom keeps both: that is
+                the part doing the work.
             --}}
-            <div class="w-full max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
-                <div class="grid grid-cols-8 overflow-hidden rounded-lg border-2 border-b-[10px] border-zinc-300 dark:border-zinc-950">
+            <div class="-mx-6 w-[calc(100%+3rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
+                <div class="grid grid-cols-8 overflow-hidden border-x-0 border-t-0 border-b-[10px] border-zinc-300 sm:rounded-lg sm:border-2 sm:border-b-[10px] dark:border-zinc-950">
                     <template x-for="cell in squares" :key="cell.name">
                         <button
                             type="button"
