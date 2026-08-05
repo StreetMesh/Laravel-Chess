@@ -149,14 +149,13 @@ new #[Title('Chess')] class extends Component
                                 by fill, the way a real set is.
 
                                 Each side outlined against itself: a dark line
-                                round the white pieces, a light one round the
-                                black. The same weight for both, so they stay
-                                one set rather than two drawings sharing a
-                                board — which is what different stroke widths
-                                had made of them.
+                                round the white pieces, white round the black.
+                                The same weight for both, so they stay one set
+                                rather than two drawings sharing a board — which
+                                is what different stroke widths had made of them.
 
                                 The black pieces are a shade off black, so the
-                                light line has something to sit against rather
+                                white line has something to sit against rather
                                 than a void.
 
                                 `paint-order:stroke` puts the outline underneath the
@@ -189,7 +188,7 @@ new #[Title('Chess')] class extends Component
                                 class="size-[65%] overflow-visible stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
                                 :class="cell.white
                                     ? 'fill-white stroke-zinc-900'
-                                    : 'fill-zinc-700 stroke-zinc-300'"
+                                    : 'fill-zinc-700 stroke-white'"
                                 aria-hidden="true"
                             >
                                 <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
