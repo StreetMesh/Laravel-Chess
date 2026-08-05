@@ -84,7 +84,18 @@ final class Games
     public function settle(Gathering $game, array $result): array
     {
         if ($game->isOpen()) {
-            $this->gatherings->conclude($game);
+            /*
+             * What happened, kept by the venue as well as sent to each player's
+             * own server. The hub has already forgotten by the time anybody
+             * comes back to look, so without this a finished game is a board
+             * this screen cannot draw.
+             */
+            $this->gatherings->conclude($game, [
+                'outcome' => $result['outcome'],
+                'winner' => $result['winner'],
+                'moves' => array_values($result['moves']),
+                'fen' => $result['fen'],
+            ]);
         }
 
         $written = [];

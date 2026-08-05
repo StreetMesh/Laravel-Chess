@@ -55,6 +55,65 @@ new #[Title('Chess')] class extends Component
             <flux:callout.heading>{{ __('There is no game here') }}</flux:callout.heading>
             <flux:callout.text>{{ __('It may have finished, or the link may be wrong.') }}</flux:callout.text>
         </flux:callout>
+    @elseif (! $game->isOpen())
+        {{--
+            A game that is over is drawn from what the venue kept, not from a
+            room. The hub forgot this the moment the last person left it, so
+            trying to join one is how somebody coming back to look at a finished
+            game was shown "That is over" as though they had done something
+            wrong.
+
+            Nothing here connects to anything. It is a record being read.
+        --}}
+        @php($outcome = $game->outcome ?? [])
+
+        <div class="flex flex-col items-center gap-4">
+            <flux:callout icon="flag" class="w-full">
+                <flux:callout.heading>
+                    @if (($outcome['outcome'] ?? '') === '')
+                        {{--
+                            A game this venue concluded without keeping how.
+                            Saying "unknown" would be closer to a guess than to
+                            an answer, and inventing one would be this venue
+                            asserting something it never saw.
+                        --}}
+                        {{ __('This game is over') }}
+                    @elseif (($outcome['winner'] ?? '') !== '')
+                        {{ __(':winner won by :how', [
+                            'winner' => ucfirst((string) $outcome['winner']),
+                            'how' => $outcome['outcome'],
+                        ]) }}
+                    @else
+                        {{ __('Drawn — :how', ['how' => $outcome['outcome']]) }}
+                    @endif
+                </flux:callout.heading>
+
+                {{--
+                    The point of the whole exercise, said where it happened: the
+                    venue ran the game and keeps a copy, and the record that
+                    counts is on the server each player chose to live on.
+                --}}
+                <flux:callout.text>
+                    @if ($this->seat() !== '')
+                        {{ __('You were :seat.', ['seat' => $this->seat()]) }}
+                    @endif
+
+                    @if (($outcome['outcome'] ?? '') === '')
+                        {{ __('This venue kept no record of how it ended.') }}
+                    @else
+                        {{ __('Each player\'s own record went to the server they live on, signed by this one.') }}
+                    @endif
+                </flux:callout.text>
+            </flux:callout>
+
+            @if (($outcome['moves'] ?? []) !== [])
+                <flux:text class="font-mono text-xs">{{ implode(' ', (array) $outcome['moves']) }}</flux:text>
+            @endif
+
+            <flux:button :href="route('chess.lobby')" size="sm" variant="ghost" wire:navigate>
+                {{ __('Back to chess') }}
+            </flux:button>
+        </div>
     @else
         {{--
             The board is drawn and driven by the hub, not by Livewire.

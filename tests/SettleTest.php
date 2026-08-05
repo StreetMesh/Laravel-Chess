@@ -162,6 +162,28 @@ class SettleTest extends TestCase
         $this->assertSame($before, Http::recorded()->count(), 'nothing further was written');
     }
 
+    /**
+     * The hub forgets a room when its last player leaves, so the venue's copy
+     * is the only thing left that knows a game happened. Without it a finished
+     * board is one this screen cannot draw, and a list of what has been played
+     * here is a list of names.
+     */
+    public function test_settling_keeps_how_it_ended(): void
+    {
+        Http::fake(fn () => Http::response(['uri' => 'at://somebody/x/1', 'cid' => 'bafy'], 200));
+
+        $this->hubSaying($this->finished());
+        $game = $this->game();
+
+        $this->post(route('chess.settle', $game->key))->assertOk();
+
+        $kept = $game->fresh()?->outcome;
+
+        $this->assertSame('checkmate', $kept['outcome']);
+        $this->assertSame('white', $kept['winner']);
+        $this->assertSame($this->finished()['moves'], $kept['moves']);
+    }
+
     public function test_a_game_that_does_not_exist_is_not_settled(): void
     {
         $this->hubSaying($this->finished());

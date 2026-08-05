@@ -24,6 +24,25 @@ new #[Title('Chess')] class extends Component
             ->get();
     }
 
+    /**
+     * What has happened here, most recent first.
+     *
+     * From what the venue kept when each game concluded. The hub forgot every
+     * one of these the moment its last player left, so this is the only place
+     * left that knows a game was ever played.
+     *
+     * @return \Illuminate\Support\Collection<int, Gathering>
+     */
+    public function finished(): \Illuminate\Support\Collection
+    {
+        return Gathering::query()
+            ->where('experience', ChessExperience::COLLECTION)
+            ->where('status', Gathering::CONCLUDED)
+            ->latest('concluded_at')
+            ->limit(8)
+            ->get();
+    }
+
     public function start(): void
     {
         $visitor = app(Visitors::class)->current(request());
@@ -76,12 +95,16 @@ new #[Title('Chess')] class extends Component
             </div>
 
             {{--
-                Sitting down is one button whether it makes you a player or an
-                audience, because which of those you become is the venue's
-                answer and not something to promise before asking.
+                What the button offers is what you would actually get. Both
+                chairs taken means watching, and saying "Play" there would be a
+                promise the venue is about to break.
+
+                Still the venue's answer either way — this only reads the same
+                thing the venue is about to decide, and being wrong about it
+                costs nothing but the word.
             --}}
-            <flux:button wire:click="sit('{{ $game->key }}')" variant="ghost">
-                {{ __('Sit down') }}
+            <flux:button wire:click="sit('{{ $game->key }}')" variant="outline">
+                {{ $game->seats_count >= 2 ? __('Watch') : __('Play') }}
             </flux:button>
         </flux:card>
     @empty
@@ -92,4 +115,42 @@ new #[Title('Chess')] class extends Component
             </flux:callout.text>
         </flux:callout>
     @endforelse
+
+    {{--
+        What has happened here.
+
+        Only the venue knows: the hub forgot each of these when its last player
+        left, and the record that counts is on the servers the players live on
+        rather than this one.
+    --}}
+    @if ($this->finished()->isNotEmpty())
+        <div class="mt-2 flex flex-col gap-3">
+            <flux:heading size="lg">{{ __('Finished') }}</flux:heading>
+
+            @foreach ($this->finished() as $game)
+                @php($outcome = $game->outcome ?? [])
+
+                <flux:card
+                    :href="route('chess.table', $game->key)"
+                    wire:navigate
+                    class="flex items-center justify-between gap-4"
+                >
+                    <flux:text class="text-sm">
+                        {{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}
+                    </flux:text>
+
+                    <flux:badge size="sm" :color="($outcome['winner'] ?? '') !== '' ? 'emerald' : 'zinc'">
+                        @if (($outcome['winner'] ?? '') !== '')
+                            {{ __(':winner won', ['winner' => ucfirst((string) $outcome['winner'])]) }}
+                        @else
+                            {{ __('Drawn') }}
+                        @endif
+                        @if (($outcome['outcome'] ?? '') !== '')
+                            — {{ $outcome['outcome'] }}
+                        @endif
+                    </flux:badge>
+                </flux:card>
+            @endforeach
+        </div>
+    @endif
 </div>
