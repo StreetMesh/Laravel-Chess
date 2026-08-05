@@ -52,6 +52,15 @@ export const ChessState = schema(
     outcome: 'string',
     winner: 'string',
 
+    /**
+     * The seat that has offered a draw, while the offer stands.
+     *
+     * The one thing here that needs both players to agree, so it is state
+     * rather than a message: an offer made while somebody was reconnecting has
+     * to still be there when they arrive.
+     */
+    drawOfferedBy: 'string',
+
     occupants: { map: Occupant },
   },
   'ChessState',
@@ -73,6 +82,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
       legal: [],
       outcome: '',
       winner: '',
+      drawOfferedBy: '',
       occupants: new MapSchema<InstanceType<typeof Occupant>>(),
     })
 
@@ -83,6 +93,93 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
     this.onMessage('move', (client, message: { from?: string; to?: string; promotion?: string }) => {
       this.play(client, message)
     })
+
+    /*
+     * The two ways a game ends that the rules have nothing to say about.
+     *
+     * Chess ends by checkmate or stalemate; games end because somebody gave up
+     * or both agreed to stop. Without these a lost position has no ending
+     * except abandonment, which is the commonest way a game of chess actually
+     * finishes and the one that leaves nothing to write down.
+     */
+    this.onMessage('resign', (client) => this.resign(client))
+    this.onMessage('draw-offer', (client) => this.offerDraw(client))
+    this.onMessage('draw-accept', (client) => this.acceptDraw(client))
+    this.onMessage('draw-decline', (client) => this.declineDraw(client))
+  }
+
+  /**
+   * Which seat this client is playing, or nothing if they are watching.
+   *
+   * Everything below asks this first. A watcher who sent `resign` could
+   * otherwise end somebody else's game from the audience.
+   */
+  private playerAt(client: Client): string {
+    const seat = this.seats.get(client.sessionId)?.seat ?? ''
+
+    return SEATS.includes(seat as never) && this.state.outcome === '' ? seat : ''
+  }
+
+  private resign(client: Client): void {
+    const seat = this.playerAt(client)
+
+    if (seat === '') {
+      return
+    }
+
+    this.conclude('resignation', seat === 'white' ? 'black' : 'white')
+  }
+
+  private offerDraw(client: Client): void {
+    const seat = this.playerAt(client)
+
+    // Offering again changes nothing, and offering into somebody else's open
+    // offer is an acceptance in everything but name — so it is one.
+    if (seat === '' || seat === this.state.drawOfferedBy) {
+      return
+    }
+
+    if (this.state.drawOfferedBy !== '') {
+      this.conclude('agreement', '')
+
+      return
+    }
+
+    this.state.drawOfferedBy = seat
+  }
+
+  private acceptDraw(client: Client): void {
+    const seat = this.playerAt(client)
+
+    // Only the other player. Accepting your own offer would be resigning the
+    // game to nobody.
+    if (seat === '' || this.state.drawOfferedBy === '' || this.state.drawOfferedBy === seat) {
+      return
+    }
+
+    this.conclude('agreement', '')
+  }
+
+  private declineDraw(client: Client): void {
+    if (this.playerAt(client) === '') {
+      return
+    }
+
+    this.state.drawOfferedBy = ''
+  }
+
+  /**
+   * Over, for a reason the rules did not decide.
+   *
+   * Everything a finished game needs is set here rather than left to the
+   * position: no turn, nothing legal, and an outcome the venue can write down.
+   */
+  private conclude(outcome: string, winner: string): void {
+    this.state.outcome = outcome
+    this.state.winner = winner
+    this.state.turn = ''
+    this.state.drawOfferedBy = ''
+    this.state.legal.splice(0)
   }
 
   /**
@@ -138,6 +235,10 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
 
     this.state.fen = this.game.fen()
     this.state.turn = this.game.turn() === 'w' ? 'white' : 'black'
+
+    // Playing on is an answer. An offer left standing across a move would be
+    // accepted later against a position nobody offered it in.
+    this.state.drawOfferedBy = ''
 
     this.publishLegalMoves()
 
