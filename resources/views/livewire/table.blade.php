@@ -87,59 +87,74 @@ new #[Title('Chess')] class extends Component
                 <flux:text x-text="status"></flux:text>
             </div>
 
-            {{-- Eight files, and the same grid whichever way up you are sitting. --}}
-            <div class="grid grid-cols-8 overflow-hidden rounded border-2 border-zinc-700">
-                <template x-for="cell in squares" :key="cell.name">
-                    <button
-                        type="button"
-                        @click="choose(cell.name)"
-                        :disabled="!myMove"
-                        :title="cell.piece ? `${cell.white ? 'white' : 'black'} ${cell.piece.name} on ${cell.name}` : cell.name"
-                        :class="[
-                            cell.dark ? 'bg-amber-700/70 dark:bg-zinc-800' : 'bg-amber-100 dark:bg-zinc-600',
-                            selected === cell.name ? 'ring-2 ring-inset ring-emerald-400' : '',
-                            myMove ? 'cursor-pointer' : 'cursor-default',
-                        ]"
-                        class="relative flex aspect-square w-10 items-center justify-center sm:w-12"
-                    >
-                        {{--
-                            Font Awesome Free, CC BY 4.0. Solid-only, so the two
-                            sides share a silhouette and are told apart by fill
-                            and outline, the way a real set is.
+            {{--
+                Eight files, and the same grid whichever way up you are sitting.
 
-                            `paint-order:stroke` puts the outline underneath the
-                            fill, so it reads as an edge rather than as a piece
-                            that has been thinned. Without it a white piece on a
-                            light square is very nearly invisible, which is what
-                            the Unicode glyphs used to give us.
-                        --}}
-                        <svg
-                            x-show="cell.piece"
-                            viewBox="0 0 512 512"
-                            class="size-[65%] overflow-visible [paint-order:stroke]"
-                            :class="cell.white
-                                ? 'fill-white stroke-zinc-900 stroke-[66]'
-                                : 'fill-zinc-900 stroke-zinc-100/80 stroke-[36]'"
-                            aria-hidden="true"
+                Takes the width it is given up to a ceiling, rather than being
+                eight squares of a fixed size. A board measured in pixels per
+                square runs off the side of a phone and is lost in the middle of
+                a desktop; measured as a share of the space, it is the same board
+                on both.
+
+                A thicker edge along the bottom than around the sides, in the
+                darker cut of the squares' own colour. It is the whole of the
+                dimensionality: enough to read as a solid object sitting on the
+                page rather than a pattern printed on it.
+            --}}
+            <div class="w-full max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
+                <div class="grid grid-cols-8 overflow-hidden rounded-lg border-2 border-b-[10px] border-zinc-300 dark:border-zinc-950">
+                    <template x-for="cell in squares" :key="cell.name">
+                        <button
+                            type="button"
+                            @click="choose(cell.name)"
+                            :disabled="!myMove"
+                            :title="cell.piece ? `${cell.white ? 'white' : 'black'} ${cell.piece.name} on ${cell.name}` : cell.name"
+                            :class="[
+                                cell.dark ? 'bg-zinc-200 dark:bg-zinc-700' : 'bg-white dark:bg-zinc-500',
+                                selected === cell.name ? 'ring-2 ring-inset ring-emerald-400' : '',
+                                myMove ? 'cursor-pointer' : 'cursor-default',
+                            ]"
+                            class="relative flex aspect-square w-full items-center justify-center"
                         >
-                            <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
-                        </svg>
+                            {{--
+                                Font Awesome Free, CC BY 4.0. Solid-only, so the two
+                                sides share a silhouette and are told apart by fill
+                                and outline, the way a real set is.
 
-                        {{--
-                            Where the piece you are holding may go.
+                                `paint-order:stroke` puts the outline underneath the
+                                fill, so it reads as an edge rather than as a piece
+                                that has been thinned. Without it a white piece on a
+                                light square is very nearly invisible, which is what
+                                the Unicode glyphs used to give us.
+                            --}}
+                            <svg
+                                x-show="cell.piece"
+                                viewBox="0 0 512 512"
+                                class="size-[65%] overflow-visible [paint-order:stroke]"
+                                :class="cell.white
+                                    ? 'fill-white stroke-zinc-900 stroke-[66]'
+                                    : 'fill-zinc-900 stroke-zinc-100/80 stroke-[36]'"
+                                aria-hidden="true"
+                            >
+                                <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
+                            </svg>
 
-                            A dot on an empty square and a ring around a square
-                            with something on it, so a capture does not hide
-                            behind the piece it would take.
-                        --}}
-                        <span
-                            x-show="isTarget(cell.name)"
-                            :class="cell.piece
-                                ? 'absolute inset-1 rounded-full ring-4 ring-inset ring-emerald-400/70'
-                                : 'absolute size-3 rounded-full bg-emerald-400/70'"
-                        ></span>
-                    </button>
-                </template>
+                            {{--
+                                Where the piece you are holding may go.
+
+                                A dot on an empty square and a ring around a square
+                                with something on it, so a capture does not hide
+                                behind the piece it would take.
+                            --}}
+                            <span
+                                x-show="isTarget(cell.name)"
+                                :class="cell.piece
+                                    ? 'absolute inset-1 rounded-full ring-4 ring-inset ring-emerald-400/70'
+                                    : 'absolute size-3 rounded-full bg-emerald-400/70'"
+                            ></span>
+                        </button>
+                    </template>
+                </div>
             </div>
 
             <flux:text class="font-mono text-xs" x-text="moves.join(' ')"></flux:text>
