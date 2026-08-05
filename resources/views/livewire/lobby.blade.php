@@ -20,6 +20,7 @@ new #[Title('Chess')] class extends Component
         return Gathering::query()
             ->where('experience', ChessExperience::COLLECTION)
             ->where('status', Gathering::OPEN)
+            ->with(['seats' => fn ($seats) => $seats->whereIn('seat', ['white', 'black'])->with('delegation')])
             ->withCount('seats')
             ->latest()
             ->get();
@@ -59,6 +60,26 @@ new #[Title('Chess')] class extends Component
         return app(Results::class)->at($this->open());
     }
 
+    /**
+     * Who is playing, by the names their own servers gave them.
+     *
+     * From the seats rather than from the room: this is who the game belongs
+     * to, and it stays true while somebody is reconnecting. Who is *there* is a
+     * separate line, and a separate question.
+     *
+     * @return array<string, string> handle by seat
+     */
+    public function players(Gathering $game): array
+    {
+        $players = [];
+
+        foreach ($game->seats as $seat) {
+            $players[$seat->seat] = (string) ($seat->delegation?->handle ?? '');
+        }
+
+        return $players;
+    }
+
     public function start(): void
     {
         $visitor = app(Visitors::class)->current(request());
@@ -92,7 +113,14 @@ new #[Title('Chess')] class extends Component
     applies `p-6 lg:p-8` to it — and a screen that pads again is a screen with
     twice the margins of every other one, which is exactly how this looked.
 --}}
-<div class="flex flex-col gap-6">
+{{--
+    Polled, because one line on this screen is live.
+
+    Who is at a table comes from the hub and changes without anybody here doing
+    anything. Rendered once it would be a snapshot that looks like a status —
+    two people could be sitting in the same room reading that nobody was there.
+--}}
+<div class="flex flex-col gap-6" wire:poll.5s>
     <div class="flex items-center justify-between gap-4">
         <flux:heading size="xl">{{ __('Chess') }}</flux:heading>
 
@@ -108,7 +136,24 @@ new #[Title('Chess')] class extends Component
 
         <flux:card class="flex items-center justify-between gap-4">
             <div class="flex flex-col gap-1">
-                <flux:heading>{{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}</flux:heading>
+                {{--
+                    Who is playing, which is what somebody scanning this list is
+                    actually looking for. The key is a ULID and tells nobody
+                    anything; it is only there when there is no better answer.
+                --}}
+                @php($players = $this->players($game))
+
+                <flux:heading>
+                    @if (($players['white'] ?? '') !== '' && ($players['black'] ?? '') !== '')
+                        {{ $players['white'] }} {{ __('vs') }} {{ $players['black'] }}
+                    @elseif (($players['white'] ?? '') !== '' || ($players['black'] ?? '') !== '')
+                        {{ __(':player is waiting for an opponent', [
+                            'player' => $players['white'] ?: $players['black'],
+                        ]) }}
+                    @else
+                        {{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}
+                    @endif
+                </flux:heading>
 
                 {{--
                     Who is there, not who has ever been there.
