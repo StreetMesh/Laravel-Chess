@@ -148,11 +148,16 @@ new #[Title('Chess')] class extends Component
                                 that has been thinned. Without it a white piece on a
                                 light square is very nearly invisible, which is what
                                 the Unicode glyphs used to give us.
+
+                                A small shadow lifts them off the squares. A
+                                filter on the whole element rather than anything
+                                in the artwork, so it follows the silhouette —
+                                outline included — and costs the path nothing.
                             --}}
                             <svg
                                 x-show="cell.piece"
                                 viewBox="0 0 512 512"
-                                class="size-[65%] overflow-visible [paint-order:stroke]"
+                                class="size-[65%] overflow-visible drop-shadow-sm [paint-order:stroke]"
                                 :class="cell.white
                                     ? 'fill-white stroke-zinc-900 stroke-[66]'
                                     : 'fill-zinc-900 stroke-zinc-100/80 stroke-[36]'"
