@@ -11,7 +11,7 @@
  */
 
 import { Client } from 'colyseus.js'
-import { capture, permit, place } from './sounds.js'
+import { capture, lift, permit, place } from './sounds.js'
 
 /**
  * Piece artwork from Font Awesome Free, used under CC BY 4.0.
@@ -495,7 +495,16 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
             // with no moves is not a piece you can play, so it does not become
             // a selection that could only ever be refused.
             if (this.selected === null || this.canMoveFrom(square)) {
-                this.selected = this.canMoveFrom(square) ? square : null
+                const picking = this.canMoveFrom(square)
+
+                this.selected = picking ? square : null
+
+                // Only when something is actually in your hand. Clicking empty
+                // board is not picking anything up, and putting a piece back
+                // down is not either.
+                if (picking) {
+                    lift()
+                }
 
                 return
             }

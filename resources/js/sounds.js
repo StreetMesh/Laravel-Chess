@@ -1,7 +1,7 @@
 /**
- * Two sounds: a piece set down, and a piece taken.
+ * Three sounds: a piece picked up, set down, and taken.
  *
- * Made rather than loaded. Two short noises are a few lines of arithmetic and
+ * Made rather than loaded. Three short noises are a few lines of arithmetic and
  * no files, which keeps installing this experience one step — a package that
  * needed audio assets served would need the host to know about them, and a
  * package that pulled them from somewhere else would need the host to be
@@ -11,6 +11,8 @@
  * other. Setting a piece down is wood on wood: low, short, over immediately.
  * Taking one has an edge on it — the same knock with something scraping across
  * the top — because it is the move you want to notice from across the room.
+ * Lifting one is the lightest of the three and the only one that is not an
+ * impact: nothing has landed yet.
  */
 
 /**
@@ -50,9 +52,9 @@ export function permit() {
 /**
  * A short burst of noise, shaped.
  *
- * The scrape in the capture and the tap at the front of both. Generated once
- * per sound rather than kept, because it is two thousand random numbers and
- * holding on to them saves nothing worth measuring.
+ * The tick of a lift, the tap in front of a place, the scrape of a capture.
+ * Generated per sound rather than kept, because it is a couple of thousand
+ * random numbers and holding on to them saves nothing worth measuring.
  */
 function noise(ctx, seconds) {
     const samples = Math.floor(ctx.sampleRate * seconds)
@@ -68,6 +70,48 @@ function noise(ctx, seconds) {
     source.buffer = buffer
 
     return source
+}
+
+/**
+ * A piece picked up off the board.
+ *
+ * The odd one out, and deliberately: the other two are things landing, and this
+ * is a thing leaving. High, quiet and almost instant — you have not done
+ * anything yet, and a sound that announced you had would be lying about a move
+ * you can still change your mind about.
+ */
+export function lift() {
+    const ctx = context()
+    const at = ctx.currentTime
+
+    const tick = noise(ctx, 0.012)
+
+    // High and narrow, so it reads as a fingernail catching rather than as
+    // anything with weight behind it.
+    const edge = ctx.createBiquadFilter()
+    edge.type = 'highpass'
+    edge.frequency.value = 2600
+
+    const shape = ctx.createGain()
+    shape.gain.setValueAtTime(0.07, at)
+    shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.03)
+
+    tick.connect(edge).connect(shape).connect(ctx.destination)
+    tick.start(at)
+
+    // A hint of pitch under it so it is a sound rather than a click, an octave
+    // and a half above where a piece lands.
+    const body = ctx.createOscillator()
+    body.type = 'sine'
+    body.frequency.setValueAtTime(560, at)
+
+    const bodyShape = ctx.createGain()
+    bodyShape.gain.setValueAtTime(0.05, at)
+    bodyShape.gain.exponentialRampToValueAtTime(0.0006, at + 0.05)
+
+    body.connect(bodyShape).connect(ctx.destination)
+    body.start(at)
+    body.stop(at + 0.06)
 }
 
 /**
