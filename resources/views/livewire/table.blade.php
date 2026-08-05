@@ -193,7 +193,7 @@ new #[Title('Chess')] class extends Component
                                 x-show="cell.piece"
                                 viewBox="0 0 512 512"
                                 class="size-[65%] overflow-visible stroke-white stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
-                                :class="cell.white ? 'fill-[#efeae1]' : 'fill-slate-800'"
+                                :class="cell.white ? 'fill-[#e6e0d6]' : 'fill-slate-800'"
                                 aria-hidden="true"
                             >
                                 <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
