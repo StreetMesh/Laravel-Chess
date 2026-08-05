@@ -160,6 +160,10 @@ export function chessReplay(positions, moves, seat) {
             return false
         },
 
+        inCheck() {
+            return false
+        },
+
         choose() {},
 
         init() {
@@ -248,6 +252,9 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         over: false,
         turn: 'white',
 
+        /** The side whose king is under attack, as the room reports it. */
+        check: '',
+
         /**
          * Every move available right now, as `e2e4`, exactly as the room sent
          * it. Not derived here — see `isTarget`.
@@ -330,6 +337,7 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
                 this.sound()
                 this.legal = [...state.legal]
                 this.turn = state.turn
+                this.check = state.check
                 this.over = state.outcome !== ''
 
                 this.status = state.outcome
@@ -454,6 +462,18 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
          */
         get myMove() {
             return Boolean(this.seat) && !this.over && this.turn === this.seat
+        },
+
+        /**
+         * Whether this square holds the king that is currently in trouble.
+         *
+         * Which side is in check comes from the room; which square that king is
+         * on is read off the position we are already drawing. Neither is worked
+         * out here — noticing the `+` on a move would say a check happened
+         * without saying whose king it was.
+         */
+        inCheck(cell) {
+            return this.check !== '' && cell.piece?.name === 'king' && (cell.white ? 'white' : 'black') === this.check
         },
 
         /**

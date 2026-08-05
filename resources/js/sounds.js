@@ -40,20 +40,41 @@ function context() {
 }
 
 /**
- * The context, but only if it can be heard right now.
+ * Make a sound, if making it now still means what it meant.
  *
  * A sound scheduled into a suspended context is not dropped — it waits, and
  * arrives whenever the browser lets audio start, which is the next time
  * somebody clicks something. That produced a knock on the first click of a
- * refreshed game: not a queue we built, but one the audio clock kept for us.
+ * refreshed game: not a queue we built, but one the audio clock kept.
  *
- * A sound that cannot be played at the moment it means something is a sound
- * that should not be played at all.
+ * So a sound the room caused is dropped if it cannot be heard immediately. It
+ * described a move that has already happened, and playing it late describes it
+ * wrongly.
+ *
+ * A sound *you* caused waits, because starting the audio is exactly what your
+ * click is for. `resume()` does not finish within the gesture that permits it,
+ * so insisting is the difference between a first click that is silent and one
+ * that answers. Two lines apart, and the reason the first click after a refresh
+ * made no sound at all.
  */
-function audible() {
+function play(build, insist = false) {
     const ctx = context()
 
-    return ctx.state === 'running' ? ctx : null
+    if (ctx.state === 'running') {
+        build(ctx, ctx.currentTime)
+
+        return
+    }
+
+    if (!insist) {
+        return
+    }
+
+    void ctx.resume().then(() => {
+        if (ctx.state === 'running') {
+            build(ctx, ctx.currentTime)
+        }
+    })
 }
 
 /**
@@ -100,42 +121,36 @@ function noise(ctx, seconds) {
  * you can still change your mind about.
  */
 export function lift() {
-    const ctx = audible()
+    play((ctx, at) => {
+        const tick = noise(ctx, 0.012)
 
-    if (ctx === null) {
-        return
-    }
+        // High and narrow, so it reads as a fingernail catching rather than as
+        // anything with weight behind it.
+        const edge = ctx.createBiquadFilter()
+        edge.type = 'highpass'
+        edge.frequency.value = 2600
 
-    const at = ctx.currentTime
+        const shape = ctx.createGain()
+        shape.gain.setValueAtTime(0.07, at)
+        shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.03)
 
-    const tick = noise(ctx, 0.012)
+        tick.connect(edge).connect(shape).connect(ctx.destination)
+        tick.start(at)
 
-    // High and narrow, so it reads as a fingernail catching rather than as
-    // anything with weight behind it.
-    const edge = ctx.createBiquadFilter()
-    edge.type = 'highpass'
-    edge.frequency.value = 2600
+        // A hint of pitch under it so it is a sound rather than a click, an octave
+        // and a half above where a piece lands.
+        const body = ctx.createOscillator()
+        body.type = 'sine'
+        body.frequency.setValueAtTime(560, at)
 
-    const shape = ctx.createGain()
-    shape.gain.setValueAtTime(0.07, at)
-    shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.03)
+        const bodyShape = ctx.createGain()
+        bodyShape.gain.setValueAtTime(0.05, at)
+        bodyShape.gain.exponentialRampToValueAtTime(0.0006, at + 0.05)
 
-    tick.connect(edge).connect(shape).connect(ctx.destination)
-    tick.start(at)
-
-    // A hint of pitch under it so it is a sound rather than a click, an octave
-    // and a half above where a piece lands.
-    const body = ctx.createOscillator()
-    body.type = 'sine'
-    body.frequency.setValueAtTime(560, at)
-
-    const bodyShape = ctx.createGain()
-    bodyShape.gain.setValueAtTime(0.05, at)
-    bodyShape.gain.exponentialRampToValueAtTime(0.0006, at + 0.05)
-
-    body.connect(bodyShape).connect(ctx.destination)
-    body.start(at)
-    body.stop(at + 0.06)
+        body.connect(bodyShape).connect(ctx.destination)
+        body.start(at)
+        body.stop(at + 0.06)
+    }, true)
 }
 
 /**
@@ -147,79 +162,67 @@ export function lift() {
  * the board had heard you.
  */
 export function drop() {
-    const ctx = audible()
+    play((ctx, at) => {
+        const tick = noise(ctx, 0.012)
 
-    if (ctx === null) {
-        return
-    }
+        const edge = ctx.createBiquadFilter()
+        edge.type = 'highpass'
+        edge.frequency.value = 1800
 
-    const at = ctx.currentTime
+        const shape = ctx.createGain()
+        shape.gain.setValueAtTime(0.045, at)
+        shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.03)
 
-    const tick = noise(ctx, 0.012)
+        tick.connect(edge).connect(shape).connect(ctx.destination)
+        tick.start(at)
 
-    const edge = ctx.createBiquadFilter()
-    edge.type = 'highpass'
-    edge.frequency.value = 1800
+        // Falling where a lift holds steady, which is the whole of the difference.
+        const body = ctx.createOscillator()
+        body.type = 'sine'
+        body.frequency.setValueAtTime(430, at)
+        body.frequency.exponentialRampToValueAtTime(260, at + 0.06)
 
-    const shape = ctx.createGain()
-    shape.gain.setValueAtTime(0.045, at)
-    shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.03)
+        const bodyShape = ctx.createGain()
+        bodyShape.gain.setValueAtTime(0.04, at)
+        bodyShape.gain.exponentialRampToValueAtTime(0.0006, at + 0.07)
 
-    tick.connect(edge).connect(shape).connect(ctx.destination)
-    tick.start(at)
-
-    // Falling where a lift holds steady, which is the whole of the difference.
-    const body = ctx.createOscillator()
-    body.type = 'sine'
-    body.frequency.setValueAtTime(430, at)
-    body.frequency.exponentialRampToValueAtTime(260, at + 0.06)
-
-    const bodyShape = ctx.createGain()
-    bodyShape.gain.setValueAtTime(0.04, at)
-    bodyShape.gain.exponentialRampToValueAtTime(0.0006, at + 0.07)
-
-    body.connect(bodyShape).connect(ctx.destination)
-    body.start(at)
-    body.stop(at + 0.08)
+        body.connect(bodyShape).connect(ctx.destination)
+        body.start(at)
+        body.stop(at + 0.08)
+    }, true)
 }
 
 /**
  * Wood on wood. Low, short, and over before you have thought about it.
  */
 export function place() {
-    const ctx = audible()
+    play((ctx, at) => {
+        const body = ctx.createOscillator()
+        body.type = 'triangle'
+        body.frequency.setValueAtTime(190, at)
+        body.frequency.exponentialRampToValueAtTime(70, at + 0.09)
 
-    if (ctx === null) {
-        return
-    }
+        const shape = ctx.createGain()
+        shape.gain.setValueAtTime(0.28, at)
+        shape.gain.exponentialRampToValueAtTime(0.0008, at + 0.11)
 
-    const at = ctx.currentTime
+        body.connect(shape).connect(ctx.destination)
+        body.start(at)
+        body.stop(at + 0.12)
 
-    const body = ctx.createOscillator()
-    body.type = 'triangle'
-    body.frequency.setValueAtTime(190, at)
-    body.frequency.exponentialRampToValueAtTime(70, at + 0.09)
+        // The knock itself, so it lands rather than swells.
+        const tap = noise(ctx, 0.02)
+        const edge = ctx.createBiquadFilter()
+        edge.type = 'lowpass'
+        edge.frequency.value = 2200
 
-    const shape = ctx.createGain()
-    shape.gain.setValueAtTime(0.28, at)
-    shape.gain.exponentialRampToValueAtTime(0.0008, at + 0.11)
+        const tapShape = ctx.createGain()
+        tapShape.gain.setValueAtTime(0.12, at)
+        tapShape.gain.exponentialRampToValueAtTime(0.0008, at + 0.03)
 
-    body.connect(shape).connect(ctx.destination)
-    body.start(at)
-    body.stop(at + 0.12)
-
-    // The knock itself, so it lands rather than swells.
-    const tap = noise(ctx, 0.02)
-    const edge = ctx.createBiquadFilter()
-    edge.type = 'lowpass'
-    edge.frequency.value = 2200
-
-    const tapShape = ctx.createGain()
-    tapShape.gain.setValueAtTime(0.12, at)
-    tapShape.gain.exponentialRampToValueAtTime(0.0008, at + 0.03)
-
-    tap.connect(edge).connect(tapShape).connect(ctx.destination)
-    tap.start(at)
+        tap.connect(edge).connect(tapShape).connect(ctx.destination)
+        tap.start(at)
+    })
 }
 
 /**
@@ -229,44 +232,38 @@ export function place() {
  * it is a different shape rather than a different volume.
  */
 export function capture() {
-    const ctx = audible()
+    play((ctx, at) => {
+        const scrape = noise(ctx, 0.16)
 
-    if (ctx === null) {
-        return
-    }
+        // Narrow and falling, which is what makes it read as something sliding
+        // rather than as a second knock.
+        const edge = ctx.createBiquadFilter()
+        edge.type = 'bandpass'
+        edge.Q.value = 1.4
+        edge.frequency.setValueAtTime(2600, at)
+        edge.frequency.exponentialRampToValueAtTime(700, at + 0.15)
 
-    const at = ctx.currentTime
+        const shape = ctx.createGain()
+        shape.gain.setValueAtTime(0.16, at)
+        shape.gain.exponentialRampToValueAtTime(0.0008, at + 0.17)
 
-    const scrape = noise(ctx, 0.16)
+        scrape.connect(edge).connect(shape).connect(ctx.destination)
+        scrape.start(at)
 
-    // Narrow and falling, which is what makes it read as something sliding
-    // rather than as a second knock.
-    const edge = ctx.createBiquadFilter()
-    edge.type = 'bandpass'
-    edge.Q.value = 1.4
-    edge.frequency.setValueAtTime(2600, at)
-    edge.frequency.exponentialRampToValueAtTime(700, at + 0.15)
+        // Landing underneath it, a little lower than a plain move so the two are
+        // told apart even where the scrape is lost to a bad speaker.
+        const body = ctx.createOscillator()
+        body.type = 'triangle'
+        body.frequency.setValueAtTime(150, at + 0.02)
+        body.frequency.exponentialRampToValueAtTime(60, at + 0.13)
 
-    const shape = ctx.createGain()
-    shape.gain.setValueAtTime(0.16, at)
-    shape.gain.exponentialRampToValueAtTime(0.0008, at + 0.17)
+        const bodyShape = ctx.createGain()
+        bodyShape.gain.setValueAtTime(0.001, at)
+        bodyShape.gain.linearRampToValueAtTime(0.3, at + 0.03)
+        bodyShape.gain.exponentialRampToValueAtTime(0.0008, at + 0.15)
 
-    scrape.connect(edge).connect(shape).connect(ctx.destination)
-    scrape.start(at)
-
-    // Landing underneath it, a little lower than a plain move so the two are
-    // told apart even where the scrape is lost to a bad speaker.
-    const body = ctx.createOscillator()
-    body.type = 'triangle'
-    body.frequency.setValueAtTime(150, at + 0.02)
-    body.frequency.exponentialRampToValueAtTime(60, at + 0.13)
-
-    const bodyShape = ctx.createGain()
-    bodyShape.gain.setValueAtTime(0.001, at)
-    bodyShape.gain.linearRampToValueAtTime(0.3, at + 0.03)
-    bodyShape.gain.exponentialRampToValueAtTime(0.0008, at + 0.15)
-
-    body.connect(bodyShape).connect(ctx.destination)
-    body.start(at)
-    body.stop(at + 0.16)
+        body.connect(bodyShape).connect(ctx.destination)
+        body.start(at)
+        body.stop(at + 0.16)
+    })
 }

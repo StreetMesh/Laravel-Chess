@@ -11,6 +11,39 @@
     One copy because two copies drift. The account menu was two copies of one
     thing and grew a control in only one of them.
 --}}
+
+{{--
+    The one piece of styling this package cannot express in utilities, so it
+    ships it rather than asking the host for a keyframe. A host that had not
+    been told about it would simply not shake, which is the sort of thing
+    nobody notices is missing.
+
+    Small on purpose: a king that is being warned about, not a king having a
+    fit. It settles rather than shaking forever, because a check lasts until
+    somebody answers it and an animation that never stops stops being read.
+
+    Off entirely for anybody who has asked for less movement — the ring is
+    still there, and the room refuses an illegal move regardless.
+--}}
+<style>
+    @keyframes chess-check {
+        0%, 60%, 100% { transform: translateX(0) rotate(0); }
+        10% { transform: translateX(-7%) rotate(-5deg); }
+        20% { transform: translateX(7%) rotate(5deg); }
+        30% { transform: translateX(-5%) rotate(-4deg); }
+        40% { transform: translateX(5%) rotate(4deg); }
+        50% { transform: translateX(-2%) rotate(-2deg); }
+    }
+
+    .chess-in-check {
+        animation: chess-check 1.6s ease-in-out infinite;
+        transform-origin: 50% 85%;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .chess-in-check { animation: none; }
+    }
+</style>
 {{--
     Eight files, and the same grid whichever way up you are sitting.
 
@@ -62,7 +95,15 @@
                 :title="cell.piece ? `${cell.white ? 'white' : 'black'} ${cell.piece.name} on ${cell.name}` : cell.name"
                 :class="[
                     cell.dark ? 'bg-slate-200 dark:bg-slate-700' : 'bg-white dark:bg-slate-500',
-                    selected === cell.name ? 'ring-2 ring-inset ring-emerald-400' : '',
+                    {{--
+                        The same green, at the same weight, as everything else
+                        the board draws in green. It was `emerald-400` where the
+                        dots and the capture ring are `emerald-400/70`, and two
+                        pixels where they are four — the same token reads as a
+                        different colour at full opacity over a pale square, and
+                        it did.
+                    --}}
+                    selected === cell.name ? 'ring-4 ring-inset ring-emerald-400/70' : '',
                     myMove ? 'cursor-pointer' : 'cursor-default',
                 ]"
                 class="relative flex aspect-square w-full items-center justify-center"
@@ -117,7 +158,10 @@
                     x-show="cell.piece"
                     viewBox="0 0 512 512"
                     class="size-[65%] overflow-visible stroke-white stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
-                    :class="cell.white ? 'fill-[#dcd6cc]' : 'fill-slate-800'"
+                    :class="[
+                                    cell.white ? 'fill-[#dcd6cc]' : 'fill-slate-800',
+                                    inCheck(cell) ? 'chess-in-check' : '',
+                                ]"
                     aria-hidden="true"
                 >
                     <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>

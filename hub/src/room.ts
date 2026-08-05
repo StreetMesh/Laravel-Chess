@@ -47,6 +47,16 @@ export const ChessState = schema(
     turn: 'string',
 
     /**
+     * The side whose king is under attack, or empty.
+     *
+     * Said here rather than left to be worked out. A board could notice the `+`
+     * on the end of a move, but that says a check happened and not which king
+     * it is — finding that out means knowing where the kings are and which of
+     * them is attacked, which is the rules again, in a browser.
+     */
+    check: 'string',
+
+    /**
      * Every move that may be played right now, as `e2e4`.
      *
      * Published so a board can show somebody where a piece may go without
@@ -93,6 +103,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
       moves: [],
       positions: [this.game.fen()],
       turn: 'white',
+      check: '',
       legal: [],
       outcome: '',
       winner: '',
@@ -192,6 +203,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
     this.state.outcome = outcome
     this.state.winner = winner
     this.state.turn = ''
+    this.state.check = ''
     this.state.drawOfferedBy = ''
     this.state.legal.splice(0)
   }
@@ -250,6 +262,10 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
 
     this.state.fen = this.game.fen()
     this.state.turn = this.game.turn() === 'w' ? 'white' : 'black'
+
+    // chess.js reports check against whoever is now to move, which is the
+    // side in trouble.
+    this.state.check = this.game.isCheck() ? this.state.turn : ''
 
     // Playing on is an answer. An offer left standing across a move would be
     // accepted later against a position nobody offered it in.
@@ -321,6 +337,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
     }
 
     this.state.turn = ''
+    this.state.check = ''
     this.state.legal.splice(0)
 
     if (this.game.isCheckmate()) {

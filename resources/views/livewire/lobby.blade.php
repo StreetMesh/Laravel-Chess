@@ -190,32 +190,6 @@ new #[Title('Chess')] class extends Component
                     </flux:text>
                 @endif
 
-                {{--
-                    Who is there, not who has ever been there.
-
-                    The seat count is the venue's record and outlives everybody
-                    leaving — a table nobody has opened in a week still had two
-                    people sit down at it once. What a person reading this wants
-                    to know is whether anybody is there now.
-
-                    Nothing at all if the hub did not answer. A number this
-                    server cannot stand behind is worse than no number.
-                --}}
-                @if ($here !== null)
-                    <flux:text class="text-sm">
-                        @php($playing = collect($here)->filter(fn ($who) => $who['seat'] !== '')->count())
-                        @php($watching = count($here) - $playing)
-
-                        @if ($here === [])
-                            {{ __('Nobody here right now') }}
-                        @else
-                            {{ trans_choice('{1}one playing|[2,*]:count playing', $playing, ['count' => $playing]) }}
-                            @if ($watching > 0)
-                                · {{ trans_choice('{1}one watching|[2,*]:count watching', $watching, ['count' => $watching]) }}
-                            @endif
-                        @endif
-                    </flux:text>
-                @endif
             </div>
 
             {{--
@@ -227,9 +201,31 @@ new #[Title('Chess')] class extends Component
                 thing the venue is about to decide, and being wrong about it
                 costs nothing but the word.
             --}}
-            <flux:button wire:click="sit('{{ $game->key }}')" variant="outline">
-                {{ $this->action($game) }}
-            </flux:button>
+            <div class="flex shrink-0 items-center gap-3">
+                {{--
+                    How many people are actually at that table, beside the way
+                    in. A mark and a number rather than a sentence: it is a
+                    reading, and it changes on its own while you are looking at
+                    it — the same reason it is not part of the description.
+
+                    Everybody, playing or watching. Which of the two you would
+                    be is what the button says.
+
+                    Absent entirely when the hub did not answer, rather than
+                    zero. A number this server cannot stand behind is worse
+                    than no number.
+                --}}
+                @if ($here !== null)
+                    <flux:text class="flex items-center gap-1.5 text-sm tabular-nums">
+                        <flux:icon name="eye" class="size-4 shrink-0 text-slate-400" />
+                        {{ count($here) }}
+                    </flux:text>
+                @endif
+
+                <flux:button wire:click="sit('{{ $game->key }}')" variant="outline">
+                    {{ $this->action($game) }}
+                </flux:button>
+            </div>
         </flux:card>
     @empty
         <flux:callout icon="squares-2x2">
