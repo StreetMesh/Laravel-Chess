@@ -148,15 +148,16 @@ new #[Title('Chess')] class extends Component
                                 two sides share a silhouette and are told apart
                                 by fill, the way a real set is.
 
-                                Each side outlined against itself: a dark line
-                                round the white pieces, white round the black.
-                                The same weight for both, so they stay one set
-                                rather than two drawings sharing a board — which
-                                is what different stroke widths had made of them.
+                                Two colours between them, swapped. The white
+                                pieces are white filled and outlined in the same
+                                shade the black pieces are filled with; the
+                                black are that shade outlined in white.
 
-                                The black pieces are a shade off black, so the
-                                white line has something to sit against rather
-                                than a void.
+                                Which is what a real set is — one pale material
+                                and one dark one, not four decisions. Same
+                                weight on both, too: different stroke widths
+                                were what made the two sides look like two
+                                drawings sharing a board.
 
                                 `paint-order:stroke` puts the outline underneath the
                                 fill, so it reads as an edge rather than as a piece
@@ -187,7 +188,7 @@ new #[Title('Chess')] class extends Component
                                 viewBox="0 0 512 512"
                                 class="size-[65%] overflow-visible stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
                                 :class="cell.white
-                                    ? 'fill-white stroke-zinc-900'
+                                    ? 'fill-white stroke-zinc-700'
                                     : 'fill-zinc-700 stroke-white'"
                                 aria-hidden="true"
                             >
