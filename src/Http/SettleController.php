@@ -4,9 +4,9 @@ namespace StreetMesh\Chess\Http;
 
 use Illuminate\Http\JsonResponse;
 use StreetMesh\Chess\ChessExperience;
-use StreetMesh\Chess\Games;
 use StreetMesh\Venue\Gatherings\Gathering;
 use StreetMesh\Venue\Gatherings\Results;
+use StreetMesh\Venue\Gatherings\Settling;
 
 /**
  * Getting a finished game into the players' own records.
@@ -23,7 +23,7 @@ use StreetMesh\Venue\Gatherings\Results;
  */
 final class SettleController
 {
-    public function __invoke(string $key, Games $games, Results $results): JsonResponse
+    public function __invoke(string $key, Results $results): JsonResponse
     {
         $game = Gathering::query()
             ->where('experience', ChessExperience::COLLECTION)
@@ -49,14 +49,16 @@ final class SettleController
             return response()->json(['settled' => false, 'because' => 'not over']);
         }
 
-        $written = $games->settle($game, [
-            'outcome' => (string) ($result['outcome'] ?? ''),
-            'winner' => (string) ($result['winner'] ?? ''),
-            'moves' => array_values((array) ($result['moves'] ?? [])),
-            'positions' => array_values((array) ($result['positions'] ?? [])),
-            'fen' => (string) ($result['fen'] ?? ''),
-        ]);
+        /*
+         * Handed to the queue rather than done here, and by the same route the
+         * hub's announcement takes — writing a record means calling each
+         * player's own server, and a browser should not be holding a request
+         * open while this venue waits on somebody else's afternoon.
+         *
+         * One job per gathering however many messengers arrive.
+         */
+        Settling::dispatch($game, $result);
 
-        return response()->json(['settled' => true, 'records' => $written]);
+        return response()->json(['settled' => true, 'queued' => true]);
     }
 }

@@ -148,11 +148,23 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
   private resign(client: Client): void {
     const seat = this.playerAt(client)
 
-    if (seat === '') {
+    if (seat === '' || !this.bothHere()) {
       return
     }
 
     this.conclude('resignation', seat === 'white' ? 'black' : 'white')
+  }
+
+  /**
+   * Whether there are two people playing rather than one person waiting.
+   *
+   * Resigning to nobody is not a thing that can happen. The board hides the
+   * button, but the board is somebody else's computer — without this, a player
+   * alone at a table could end a game that had not started, and the record
+   * would say they lost one nobody played.
+   */
+  private bothHere(): boolean {
+    return this.present().filter((who) => SEATS.includes(who.seat as never)).length >= 2
   }
 
   private offerDraw(client: Client): void {
@@ -206,6 +218,13 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
     this.state.check = ''
     this.state.drawOfferedBy = ''
     this.state.legal.splice(0)
+
+    /*
+     * Nobody is leaving over this — both players may sit and look at the board
+     * for a while — so the venue would not otherwise hear until the room was
+     * disposed, and by then everybody who could have knocked has gone.
+     */
+    this.tell()
   }
 
   /**
@@ -346,6 +365,8 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
       // chess.js reports whose turn it is; in checkmate that side has lost.
       this.state.winner = this.game.turn() === 'w' ? 'black' : 'white'
 
+      this.tell()
+
       return
     }
 
@@ -358,6 +379,8 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
           : 'draw'
 
     this.state.winner = ''
+
+    this.tell()
   }
 
   protected seated(client: Client, ticket: Ticket): void {

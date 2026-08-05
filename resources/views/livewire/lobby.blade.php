@@ -138,17 +138,26 @@ new #[Title('Chess')] class extends Component
     twice the margins of every other one, which is exactly how this looked.
 --}}
 {{--
-    Polled, because one line on this screen is live.
+    Listening rather than asking.
 
-    Who is at a table comes from the hub and changes without anybody here doing
-    anything. Rendered once it would be a snapshot that looks like a status —
-    two people could be sitting in the same room reading that nobody was there.
+    Who is at a table changes without anybody on this screen doing anything, so
+    it used to poll — which meant being wrong for up to half a minute and busy
+    for the rest of it. The venue now hears every arrival and departure from the
+    hub and says so, and this waits to be told.
 
-    Half a minute, because every open lobby asks the hub each time. Somebody
-    reading a list of games is deciding which one to join, not watching it; the
-    board is where things need to be immediate.
+    The poll stays as a slow backstop. A dropped socket is silent by nature, and
+    a screen that had quietly stopped listening would look exactly like a venue
+    where nothing was happening.
 --}}
-<div class="flex flex-col gap-6" wire:poll.30s>
+<div
+    class="flex flex-col gap-6"
+    wire:poll.120s
+    x-data
+    x-init="
+        window.Echo?.channel('streetmesh.experience.{{ ChessExperience::COLLECTION }}')
+            .listen('.StreetMesh\\Venue\\Realtime\\Occupied', () => $wire.$refresh())
+    "
+>
     <div class="flex items-center justify-between gap-4">
         <flux:heading size="xl">{{ __('Chess') }}</flux:heading>
 
@@ -228,11 +237,13 @@ new #[Title('Chess')] class extends Component
             </div>
         </flux:card>
     @empty
+        {{--
+            The sentence under this explained federation to somebody who wanted
+            a game of chess. "Start a game" is already the only other thing on
+            the screen.
+        --}}
         <flux:callout icon="squares-2x2">
-            <flux:callout.heading>{{ __('Nothing in progress') }}</flux:callout.heading>
-            <flux:callout.text>
-                {{ __('Start one, and send somebody the link. They do not need an account here — they arrive with the address they already use.') }}
-            </flux:callout.text>
+            <flux:callout.heading>{{ __('No games in progress') }}</flux:callout.heading>
         </flux:callout>
     @endforelse
 

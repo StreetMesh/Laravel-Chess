@@ -4,6 +4,8 @@ namespace StreetMesh\Chess;
 
 use StreetMesh\Protocol\Scope;
 use StreetMesh\Venue\Experiences\Experience;
+use StreetMesh\Venue\Experiences\Settles;
+use StreetMesh\Venue\Gatherings\Gathering;
 
 /**
  * Chess, as something a venue hosts.
@@ -17,13 +19,37 @@ use StreetMesh\Venue\Experiences\Experience;
  * "Residents" and "Experiences", as though a server could be a chess in the way
  * it can be a domicile.
  */
-final class ChessExperience implements Experience
+final class ChessExperience implements Experience, Settles
 {
     /**
      * One name for three things: the collection its records go in, the room
      * type its hub serves, and the experience itself.
      */
     public const COLLECTION = 'com.streetmesh.games.chess';
+
+    /**
+     * A finished game, written down.
+     *
+     * The venue calls this when the hub says a game is over — including when
+     * that happens with nobody left watching, which is the case a browser can
+     * never report and the commonest way a game actually ends.
+     *
+     * Doing it twice writes nothing twice: Games::settle leaves a concluded
+     * gathering alone, and a browser knocking and the hub announcing are two
+     * messengers with the same news.
+     *
+     * @param  array<string, mixed>  $result
+     */
+    public function settle(Gathering $gathering, array $result): void
+    {
+        app(Games::class)->settle($gathering, [
+            'outcome' => (string) ($result['outcome'] ?? ''),
+            'winner' => (string) ($result['winner'] ?? ''),
+            'moves' => array_values((array) ($result['moves'] ?? [])),
+            'positions' => array_values((array) ($result['positions'] ?? [])),
+            'fen' => (string) ($result['fen'] ?? ''),
+        ]);
+    }
 
     public function name(): string
     {

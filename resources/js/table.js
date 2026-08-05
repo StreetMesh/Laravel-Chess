@@ -133,6 +133,29 @@ function squaresFrom(fen, flipped) {
 }
 
 /**
+ * How a finished game reads, from where you were sitting.
+ *
+ * One sentence and one place that writes it, because the live board and a game
+ * opened later say the same thing and used to say it in two languages — one in
+ * Blade from the record, one here from the room.
+ */
+export function ending(outcome, winner, seat) {
+    if (!outcome) {
+        return 'This game is over'
+    }
+
+    if (seat) {
+        if (!winner) {
+            return `You drew by ${outcome}`
+        }
+
+        return seat === winner ? `You won by ${outcome}` : `You lost by ${outcome}`
+    }
+
+    return winner ? `${winner.charAt(0).toUpperCase()}${winner.slice(1)} won by ${outcome}` : `Drawn by ${outcome}`
+}
+
+/**
  * A finished game, walked through.
  *
  * Reads positions the room recorded while it was being played rather than
@@ -144,11 +167,23 @@ function squaresFrom(fen, flipped) {
  * the answers are all "no": nothing is yours to move, nothing is selected,
  * nothing is a target, and clicking does nothing.
  */
-export function chessReplay(positions, moves, seat) {
+export function chessReplay({ positions, moves, seat, outcome, winner, white, black }) {
     return {
         positions,
         moves,
+        seat,
+        outcome,
+        winner,
+        players: { white, black },
+        knight: artwork('n'),
+        over: true,
         at: 0,
+
+        /*
+         * Nobody is to move in a finished game, and the sides are drawn the same
+         * way round as they were played.
+         */
+        turn: '',
         playing: false,
         timer: null,
 
@@ -166,8 +201,35 @@ export function chessReplay(positions, moves, seat) {
 
         choose() {},
 
+        get ending() {
+            return ending(this.outcome, this.winner, this.seat)
+        },
+
+        /**
+         * Which side is drawn at the top, which is whoever you are not — and
+         * black for somebody who played neither, the way a board is drawn when
+         * nobody in particular is looking at it.
+         */
+        get far() {
+            return this.seat === 'black' ? 'white' : 'black'
+        },
+
+        get near() {
+            return this.seat === 'black' ? 'black' : 'white'
+        },
+
         init() {
-            this.show(0)
+            /*
+             * Where the game finished, not where it started.
+             *
+             * Opening a finished game on the opening position shows a board
+             * nobody was looking at — the position everybody remembers is the
+             * one it ended on, and it is the answer to "what happened" that the
+             * heading above has just given in words.
+             *
+             * Replay winds back to the start; arriving does not.
+             */
+            this.show(this.last)
         },
 
         get last() {
@@ -218,7 +280,9 @@ export function chessReplay(positions, moves, seat) {
                 return
             }
 
-            // Watching from the end means watching it again.
+            // Watching from the end means watching it again — which is the
+            // ordinary case now, since a finished game opens on its last
+            // position rather than its first.
             if (this.at >= this.last) {
                 this.show(0)
             }
@@ -241,7 +305,7 @@ export function chessReplay(positions, moves, seat) {
     }
 }
 
-export default function chessTable(ticketUrl, settleUrl, seat) {
+export default function chessTable({ ticketUrl, settleUrl, seat, invitation, white, black }) {
     return {
         seat,
         squares: squaresFrom('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', seat === 'black'),
@@ -254,6 +318,47 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
 
         /** The side whose king is under attack, as the room reports it. */
         check: '',
+
+        /**
+         * How many of the two chairs have somebody in them.
+         *
+         * Counted off the room rather than the venue's seats, because the
+         * question is whether there is a game on rather than who is entitled to
+         * one. Somebody who has opened a table and is waiting has a chair and no
+         * opponent, and there is nothing there to resign.
+         */
+        here: 0,
+
+        /** How it ended, once it has. */
+        outcome: '',
+        winner: '',
+
+        /** What the invitation says once it has been sent or copied. */
+        invited: '',
+
+        /**
+         * Who is playing each side, by the name their own server gave them.
+         *
+         * Seeded from the venue's seats and kept up to date by the room, which
+         * is the difference between the two: a seat is a right to a chair and
+         * survives somebody closing a tab, while the room only knows who is
+         * connected. A name is never cleared once known — an opponent who has
+         * dropped out for a moment is still who you are playing.
+         */
+        players: { white, black },
+
+        /**
+         * The position after every move, kept as they arrive.
+         *
+         * So that a game ending turns this board into a replay of itself
+         * without the page being loaded again — the room has been sending
+         * these all along and nothing here was keeping them.
+         */
+        positions: [],
+        at: 0,
+        reviewing: false,
+        playing: false,
+        timer: null,
 
         /**
          * Every move available right now, as `e2e4`, exactly as the room sent
@@ -293,6 +398,23 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         knight: artwork('n'),
 
         async init() {
+            /*
+             * Somebody who has followed an invitation has no place here yet, so
+             * there is no ticket to ask for and nothing to join. The board they
+             * are looking at is a still one and the only thing on offer is a
+             * chair.
+             *
+             * Asking anyway is how this screen used to greet them: the venue
+             * answered "That visitor has no place there", and a page told a
+             * stranger they were trespassing on a game they had been invited
+             * to.
+             */
+            if (!ticketUrl) {
+                this.status = ''
+
+                return
+            }
+
             let admitted
 
             try {
@@ -331,20 +453,46 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
             this.status = ''
 
             this.room.onStateChange((state) => {
-                this.squares = squaresFrom(state.fen, this.seat === 'black')
                 this.moves = [...state.moves]
+                this.positions = [...state.positions]
 
                 this.sound()
                 this.legal = [...state.legal]
                 this.turn = state.turn
                 this.check = state.check
+                this.outcome = state.outcome
+                this.winner = state.winner
+
+                let seated = 0
+                state.occupants?.forEach((who) => {
+                    if (!who.seat) {
+                        return
+                    }
+
+                    seated += 1
+                    this.players[who.seat] = who.name
+                })
+                this.here = seated
                 this.over = state.outcome !== ''
 
-                this.status = state.outcome
-                    ? state.winner
-                        ? `${state.winner} wins by ${state.outcome}`
-                        : `Drawn — ${state.outcome}`
-                    : `${state.turn} to move`
+                this.status = this.over ? '' : `${state.turn} to move`
+
+                /*
+                 * A game that has just ended becomes a record of itself, here,
+                 * without the page being loaded again: the board stops taking
+                 * moves, the ending is said in one line, and the whole thing
+                 * can be played back.
+                 *
+                 * Only on the way in. Once somebody is stepping through it,
+                 * later state must not drag the board back to the end under
+                 * them.
+                 */
+                if (this.over && !this.reviewing) {
+                    this.reviewing = true
+                    this.show(this.last)
+                } else if (!this.reviewing) {
+                    this.squares = squaresFrom(state.fen, this.seat === 'black')
+                }
 
                 if (this.over) {
                     this.settle()
@@ -360,6 +508,44 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
             this.room.onLeave(() => {
                 this.status = 'Disconnected'
             })
+        },
+
+        /**
+         * Ask somebody to play.
+         *
+         * Through the operating system's own share sheet where there is one, so
+         * the invitation goes wherever that person actually talks to their
+         * opponent rather than through anything this venue would have to run.
+         *
+         * The sentence and the address are handed over separately because that
+         * is what a share sheet expects: a target that can make a link out of a
+         * URL does, and one that cannot puts the two together itself. Pasting
+         * the address into the sentence as well would show it twice in most of
+         * them.
+         *
+         * Where there is no share sheet — most desktop browsers — the whole
+         * thing goes on the clipboard instead, which is what somebody was going
+         * to do with it anyway.
+         */
+        async invite() {
+            const sentence = `Hey, let's play Chess.`
+
+            try {
+                if (navigator.share) {
+                    await navigator.share({ title: 'Chess', text: sentence, url: invitation })
+
+                    return
+                }
+
+                await navigator.clipboard.writeText(`${sentence} ${invitation}`)
+                this.invited = 'Link copied'
+            } catch (cancelled) {
+                // Dismissing the share sheet throws, and is not a failure — it
+                // is somebody deciding not to. Nothing to say about it.
+                return
+            }
+
+            setTimeout(() => (this.invited = ''), 2500)
         },
 
         /**
@@ -408,8 +594,80 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
          * cannot run it, and that has to work too.
          */
         destroy() {
+            this.stop()
             this.room?.leave()
             this.room = null
+        },
+
+        get last() {
+            return Math.max(0, this.positions.length - 1)
+        },
+
+        get playedHere() {
+            return this.at > 0 ? this.moves[this.at - 1] : ''
+        },
+
+        get ending() {
+            return ending(this.outcome, this.winner, this.seat)
+        },
+
+        /**
+         * Which side is drawn at the top, which is whoever you are not.
+         *
+         * The board turns around for black, so the far side of it is the
+         * opponent — and for somebody watching, who has no side, it is black,
+         * the way a board is drawn when nobody in particular is looking at it.
+         */
+        get far() {
+            return this.seat === 'black' ? 'white' : 'black'
+        },
+
+        get near() {
+            return this.seat === 'black' ? 'black' : 'white'
+        },
+
+        show(index) {
+            this.at = Math.min(Math.max(index, 0), this.last)
+            this.squares = squaresFrom(this.positions[this.at] ?? '', this.seat === 'black')
+        },
+
+        step(by) {
+            this.stop()
+            this.show(this.at + by)
+        },
+
+        advance() {
+            if (this.at >= this.last) {
+                this.stop()
+
+                return
+            }
+
+            this.show(this.at + 1)
+            this.playedHere.includes('x') ? capture() : place()
+        },
+
+        play() {
+            permit()
+
+            if (this.playing) {
+                this.stop()
+
+                return
+            }
+
+            if (this.at >= this.last) {
+                this.show(0)
+            }
+
+            this.playing = true
+            this.timer = setInterval(() => this.advance(), 900)
+        },
+
+        stop() {
+            this.playing = false
+            clearInterval(this.timer)
+            this.timer = null
         },
 
         /**

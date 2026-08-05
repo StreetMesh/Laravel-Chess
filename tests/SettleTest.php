@@ -3,6 +3,7 @@
 namespace StreetMesh\Chess\Tests;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Chess\Games;
 use StreetMesh\Protocol\Laravel\Permissions\Delegation;
@@ -10,6 +11,7 @@ use StreetMesh\Protocol\Network;
 use StreetMesh\Protocol\P256;
 use StreetMesh\Protocol\Scope;
 use StreetMesh\Venue\Gatherings\Gathering;
+use StreetMesh\Venue\Gatherings\Settling;
 use StreetMesh\Venue\Visitors;
 
 /**
@@ -182,6 +184,43 @@ class SettleTest extends TestCase
         $this->assertSame('checkmate', $kept['outcome']);
         $this->assertSame('white', $kept['winner']);
         $this->assertSame($this->finished()['moves'], $kept['moves']);
+    }
+
+    /**
+     * Writing a record means calling each player's own server, and whoever
+     * brought the news should not be holding a request open while this venue
+     * waits on somebody else's afternoon.
+     *
+     * Both messengers take the same route — a browser noticing the board has
+     * stopped, and the hub announcing the room has ended — so one job covers a
+     * gathering however many of them arrive.
+     */
+    public function test_settling_is_handed_to_the_queue(): void
+    {
+        Queue::fake();
+        $this->hubSaying($this->finished());
+        $game = $this->game();
+
+        $this->post(route('chess.settle', $game->key))
+            ->assertOk()
+            ->assertJson(['settled' => true, 'queued' => true]);
+
+        Queue::assertPushed(
+            Settling::class,
+            fn (Settling $job): bool => $job->gathering->is($game) && $job->result['winner'] === 'white',
+        );
+    }
+
+    /**
+     * A domicile that is down is a record that arrives late rather than one
+     * that never arrives, which is the whole reason this is on a queue.
+     */
+    public function test_a_settling_that_fails_is_tried_again(): void
+    {
+        $job = new Settling($this->game(), $this->finished());
+
+        $this->assertGreaterThan(1, $job->tries);
+        $this->assertNotEmpty($job->backoff);
     }
 
     public function test_a_game_that_does_not_exist_is_not_settled(): void
