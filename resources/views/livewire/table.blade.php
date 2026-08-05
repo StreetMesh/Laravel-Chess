@@ -118,13 +118,13 @@ new #[Title('Chess')] class extends Component
                 Below `sm` only — at `lg` the main area pads by `p-8` and the
                 board is nowhere near the edges anyway.
 
-                The border and the rounding stay at every size. Dropping them on
-                a phone was my idea and a bad one — the board stopped looking
-                like an object at exactly the size where it is the only thing on
-                screen.
+                The border stays at every size; the rounding does not. Running
+                to both edges of a phone, a rounded corner is a corner cut off
+                the screen rather than a corner — square is what actually meets
+                the edge.
             --}}
             <div class="max-sm:-mx-6 max-sm:w-[calc(100%+3rem)] w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
-                <div class="grid grid-cols-8 overflow-hidden rounded-lg border-2 border-b-[10px] border-zinc-300 dark:border-zinc-950">
+                <div class="grid grid-cols-8 overflow-hidden border-2 border-b-[10px] border-zinc-300 sm:rounded-lg dark:border-zinc-950">
                     <template x-for="cell in squares" :key="cell.name">
                         <button
                             type="button"
