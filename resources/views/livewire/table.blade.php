@@ -42,7 +42,12 @@ new #[Title('Chess')] class extends Component
     }
 };?>
 
-<div class="flex flex-col gap-6 p-6 max-sm:px-0">
+{{--
+    No padding of its own. Flux's main area already applies `p-6 lg:p-8`, and
+    padding again is how this screen ended up with twice the margins of the
+    rest.
+--}}
+<div class="flex flex-col gap-6">
     @php($game = $this->game())
 
     @if ($game === null)
@@ -67,18 +72,13 @@ new #[Title('Chess')] class extends Component
             x-data="chessTable(@js(route('venue.ticket', $game->key)), @js(route('chess.settle', $game->key)), @js($this->seat()))"
             class="flex flex-col items-center gap-4"
         >
-            {{--
-                Everything that is not the board keeps the page's side padding
-                back. Only the board wants the edges; text against the edge of a
-                screen is just text nobody left room for.
-            --}}
             <template x-if="trouble">
-                <flux:callout variant="danger" icon="exclamation-triangle" class="w-full max-sm:mx-6 max-sm:w-[calc(100%-3rem)]">
+                <flux:callout variant="danger" icon="exclamation-triangle" class="w-full">
                     <flux:callout.text x-text="trouble"></flux:callout.text>
                 </flux:callout>
             </template>
 
-            <div class="flex w-full items-center justify-between gap-4 max-sm:px-6">
+            <div class="flex w-full items-center justify-between gap-4">
                 <flux:text>
                     <span x-show="!seat">{{ __('Watching') }}</span>
                     <span x-show="seat" x-text="`You are ${seat}`"></span>
@@ -104,20 +104,26 @@ new #[Title('Chess')] class extends Component
                 On a phone it runs to both edges, which is what buys the squares
                 enough size to aim at with a thumb.
 
-                The page gives up its side padding rather than the board trying
-                to escape it. Two attempts at escaping went wrong in two
-                different ways — cancelling a known padding left the layout's
-                own, and measuring against the viewport put a 100vw element
-                inside Flux's body grid, where the main column is a track rather
-                than the screen. Filling the column is the thing that cannot
-                miss: whatever the column is, the board is that.
+                On a phone it cancels exactly one padding: Flux's main area
+                applies `p-6`, and this takes 1.5rem back off each side.
+
+                It took three tries to be worth this little. Cancelling the
+                page's own padding left the layout's; measuring against the
+                viewport put a 100vw element inside Flux's body grid, where the
+                main column is a track rather than the screen. Both were guesses
+                at a number nobody had looked up. `flux:main` says `p-6 lg:p-8`
+                in its own source, and once the screen stopped padding twice
+                there was one padding left with a known value.
+
+                Below `sm` only — at `lg` the main area pads by `p-8` and the
+                board is nowhere near the edges anyway.
 
                 The border and the rounding stay at every size. Dropping them on
                 a phone was my idea and a bad one — the board stopped looking
                 like an object at exactly the size where it is the only thing on
                 screen.
             --}}
-            <div class="w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
+            <div class="max-sm:-mx-6 max-sm:w-[calc(100%+3rem)] w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
                 <div class="grid grid-cols-8 overflow-hidden rounded-lg border-2 border-b-[10px] border-zinc-300 dark:border-zinc-950">
                     <template x-for="cell in squares" :key="cell.name">
                         <button
@@ -173,7 +179,7 @@ new #[Title('Chess')] class extends Component
                 </div>
             </div>
 
-            <flux:text class="font-mono text-xs max-sm:px-6" x-text="moves.join(' ')"></flux:text>
+            <flux:text class="font-mono text-xs" x-text="moves.join(' ')"></flux:text>
         </div>
     @endif
 </div>
