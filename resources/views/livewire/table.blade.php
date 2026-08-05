@@ -129,7 +129,7 @@ new #[Title('Chess')] class extends Component
                 unfinished.
             --}}
             <div class="max-sm:-mx-6 max-sm:w-[calc(100%+3rem)] w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
-                <div class="grid grid-cols-8 overflow-hidden border-x-0 border-t-2 border-b-[10px] border-zinc-300 sm:rounded-lg sm:border-x-2 dark:border-zinc-950">
+                <div class="grid grid-cols-8 overflow-hidden border-x-0 border-t-2 border-b-[10px] border-slate-300 sm:rounded-lg sm:border-x-2 dark:border-slate-950">
                     <template x-for="cell in squares" :key="cell.name">
                         <button
                             type="button"
@@ -137,7 +137,7 @@ new #[Title('Chess')] class extends Component
                             :disabled="!myMove"
                             :title="cell.piece ? `${cell.white ? 'white' : 'black'} ${cell.piece.name} on ${cell.name}` : cell.name"
                             :class="[
-                                cell.dark ? 'bg-zinc-200 dark:bg-zinc-700' : 'bg-white dark:bg-zinc-500',
+                                cell.dark ? 'bg-slate-200 dark:bg-slate-700' : 'bg-white dark:bg-slate-500',
                                 selected === cell.name ? 'ring-2 ring-inset ring-emerald-400' : '',
                                 myMove ? 'cursor-pointer' : 'cursor-default',
                             ]"
