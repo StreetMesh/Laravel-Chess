@@ -119,8 +119,12 @@ new #[Title('Chess')] class extends Component
     Who is at a table comes from the hub and changes without anybody here doing
     anything. Rendered once it would be a snapshot that looks like a status —
     two people could be sitting in the same room reading that nobody was there.
+
+    Half a minute, because every open lobby asks the hub each time. Somebody
+    reading a list of games is deciding which one to join, not watching it; the
+    board is where things need to be immediate.
 --}}
-<div class="flex flex-col gap-6" wire:poll.5s>
+<div class="flex flex-col gap-6" wire:poll.30s>
     <div class="flex items-center justify-between gap-4">
         <flux:heading size="xl">{{ __('Chess') }}</flux:heading>
 
