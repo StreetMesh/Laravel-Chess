@@ -98,18 +98,23 @@ new #[Title('Chess')] class extends Component
                 dimensionality: enough to read as a solid object sitting on the
                 page rather than a pattern printed on it.
 
-                On a phone it breaks out of the page's padding and runs to both
-                edges, which is what buys the squares enough size to aim at with
-                a thumb. `calc(100% + 3rem)` against `-mx-6` because the page
-                pads by 1.5rem on each side — a negative margin alone would move
-                the board without widening it.
+                On a phone it runs to both edges, which is what buys the squares
+                enough size to aim at with a thumb.
+
+                Measured against the viewport rather than against a parent's
+                padding. Cancelling the padding worked out to a board that was
+                nearly edge to edge and obviously not, because the page's 1.5rem
+                is not the only padding between here and the screen — the layout
+                adds its own, and that is Flux's business rather than something
+                to keep in step with by hand. Half the parent across, then half
+                its own width back, is edge to edge whatever is in between.
 
                 The sides lose their border and their rounding out there, since
                 an edge drawn against the edge of the screen is a line with
                 nothing on the other side of it. The bottom keeps both: that is
                 the part doing the work.
             --}}
-            <div class="-mx-6 w-[calc(100%+3rem)] max-w-none sm:mx-0 sm:w-full sm:max-w-[26rem] lg:max-w-[34rem] xl:max-w-[38rem]">
+            <div class="relative left-1/2 w-screen max-w-none -translate-x-1/2 sm:static sm:left-auto sm:w-full sm:max-w-[26rem] sm:translate-x-0 lg:max-w-[34rem] xl:max-w-[38rem]">
                 <div class="grid grid-cols-8 overflow-hidden border-x-0 border-t-0 border-b-[10px] border-zinc-300 sm:rounded-lg sm:border-2 sm:border-b-[10px] dark:border-zinc-950">
                     <template x-for="cell in squares" :key="cell.name">
                         <button
