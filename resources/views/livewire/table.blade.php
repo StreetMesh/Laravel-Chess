@@ -154,12 +154,15 @@ new #[Title('Chess')] class extends Component
                                 off-white rather than white so there is a fill
                                 to see inside their own border.
 
-                                Both fills come from the same family, so the
-                                dark side is a blue-black rather than a black
-                                and the pale side is cooled to match. One border
-                                colour and one weight for both, which is why
-                                they read as one set — four colours and two
-                                stroke widths was where this started, and it
+                                A warm pearl against a blue-black, which is the
+                                pairing a real set has: ivory is never white and
+                                the dark side is never quite black. Cooling the
+                                pale side to match the dark one made it read as
+                                grey rather than as a material.
+
+                                One border colour and one weight for both, which
+                                is why they read as one set — four colours and
+                                two stroke widths was where this started, and it
                                 looked like two drawings sharing a board.
 
                                 `paint-order:stroke` puts the outline underneath the
@@ -190,7 +193,7 @@ new #[Title('Chess')] class extends Component
                                 x-show="cell.piece"
                                 viewBox="0 0 512 512"
                                 class="size-[65%] overflow-visible stroke-white stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
-                                :class="cell.white ? 'fill-slate-100' : 'fill-slate-800'"
+                                :class="cell.white ? 'fill-[#efeae1]' : 'fill-slate-800'"
                                 aria-hidden="true"
                             >
                                 <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
