@@ -5,6 +5,7 @@ use Livewire\Component;
 use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Chess\Games;
 use StreetMesh\Venue\Gatherings\Gathering;
+use StreetMesh\Venue\Gatherings\Gatherings;
 use StreetMesh\Venue\Gatherings\Results;
 use StreetMesh\Venue\Visitors;
 
@@ -21,7 +22,6 @@ new #[Title('Chess')] class extends Component
             ->where('experience', ChessExperience::COLLECTION)
             ->where('status', Gathering::OPEN)
             ->with(['seats' => fn ($seats) => $seats->whereIn('seat', ['white', 'black'])->with('delegation')])
-            ->withCount('seats')
             ->latest()
             ->get();
     }
@@ -78,6 +78,30 @@ new #[Title('Chess')] class extends Component
         }
 
         return $players;
+    }
+
+    /**
+     * What going in would actually get you.
+     *
+     * Somebody already holding a chair is going back to it, whatever anybody
+     * else has done since — a game with a full audience still says "Play" to
+     * the person sitting in white. That was the bug: this counted every seat,
+     * so watchers filled the table and a player was offered a seat in the
+     * audience at their own game.
+     *
+     * Only the two chairs decide whether a stranger can play. The audience is
+     * unbounded and is not part of the question.
+     */
+    public function action(Gathering $game): string
+    {
+        $visitor = app(Visitors::class)->current(request());
+        $mine = $visitor === null ? null : app(Gatherings::class)->seatOf($game, $visitor);
+
+        if ($mine !== null) {
+            return $mine->seat === '' ? __('Watch') : __('Play');
+        }
+
+        return count($this->players($game)) < 2 ? __('Play') : __('Watch');
     }
 
     public function start(): void
@@ -204,7 +228,7 @@ new #[Title('Chess')] class extends Component
                 costs nothing but the word.
             --}}
             <flux:button wire:click="sit('{{ $game->key }}')" variant="outline">
-                {{ $game->seats_count >= 2 ? __('Watch') : __('Play') }}
+                {{ $this->action($game) }}
             </flux:button>
         </flux:card>
     @empty
