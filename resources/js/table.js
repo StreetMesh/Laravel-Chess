@@ -267,6 +267,17 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         heard: 0,
 
         /**
+         * Whether we have seen the room's state at all yet.
+         *
+         * The first delivery is the game so far, however much of it there is,
+         * and none of it just happened. Without this the board announced the
+         * last move of a game you had only just opened — and because a browser
+         * will not make a noise before you touch it, that sound sat waiting and
+         * came out on the first click, sounding like a move nobody had made.
+         */
+        synced: false,
+
+        /**
          * A knight, for the line saying which side you are playing.
          *
          * The same artwork the board draws, taken from the same table. A second
@@ -407,12 +418,14 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         sound() {
             const arrived = this.moves.length
 
-            if (arrived > this.heard) {
-                // Only the last one, however many turned up. Several at once
-                // means somebody has just opened a game already in progress.
+            // Only the last one, however many turned up — and nothing at all
+            // for the first delivery, which is the game so far rather than
+            // anything that has just happened.
+            if (this.synced && arrived > this.heard) {
                 this.moves[arrived - 1].includes('x') ? capture() : place()
             }
 
+            this.synced = true
             this.heard = arrived
         },
 

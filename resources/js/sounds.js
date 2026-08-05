@@ -40,6 +40,23 @@ function context() {
 }
 
 /**
+ * The context, but only if it can be heard right now.
+ *
+ * A sound scheduled into a suspended context is not dropped — it waits, and
+ * arrives whenever the browser lets audio start, which is the next time
+ * somebody clicks something. That produced a knock on the first click of a
+ * refreshed game: not a queue we built, but one the audio clock kept for us.
+ *
+ * A sound that cannot be played at the moment it means something is a sound
+ * that should not be played at all.
+ */
+function audible() {
+    const ctx = context()
+
+    return ctx.state === 'running' ? ctx : null
+}
+
+/**
  * Whether this browser will let us make a noise yet.
  *
  * Called on the first click anywhere on the board, because that click is the
@@ -83,7 +100,12 @@ function noise(ctx, seconds) {
  * you can still change your mind about.
  */
 export function lift() {
-    const ctx = context()
+    const ctx = audible()
+
+    if (ctx === null) {
+        return
+    }
+
     const at = ctx.currentTime
 
     const tick = noise(ctx, 0.012)
@@ -125,7 +147,12 @@ export function lift() {
  * the board had heard you.
  */
 export function drop() {
-    const ctx = context()
+    const ctx = audible()
+
+    if (ctx === null) {
+        return
+    }
+
     const at = ctx.currentTime
 
     const tick = noise(ctx, 0.012)
@@ -160,7 +187,12 @@ export function drop() {
  * Wood on wood. Low, short, and over before you have thought about it.
  */
 export function place() {
-    const ctx = context()
+    const ctx = audible()
+
+    if (ctx === null) {
+        return
+    }
+
     const at = ctx.currentTime
 
     const body = ctx.createOscillator()
@@ -197,7 +229,12 @@ export function place() {
  * it is a different shape rather than a different volume.
  */
 export function capture() {
-    const ctx = context()
+    const ctx = audible()
+
+    if (ctx === null) {
+        return
+    }
+
     const at = ctx.currentTime
 
     const scrape = noise(ctx, 0.16)
