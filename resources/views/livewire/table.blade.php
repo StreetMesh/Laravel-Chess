@@ -121,8 +121,14 @@ new #[Title('Chess')] class extends Component
                             question away. It cannot be taken back.
                         --}}
                         <span x-show="!over" x-data="{ asking: false }" @click.outside="asking = false">
+                            {{--
+                                `sm` rather than `xs`, because `xs` is `text-xs`
+                                and everything beside it is `text-sm`. Matching
+                                the line it sits in matters more here than being
+                                the smallest thing available.
+                            --}}
                             <flux:button
-                                size="xs"
+                                size="sm"
                                 variant="ghost"
                                 @click="asking ? (asking = false, resign()) : asking = true"
                                 x-bind:class="asking ? 'text-rose-600 dark:text-rose-400' : ''"
