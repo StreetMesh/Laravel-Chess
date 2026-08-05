@@ -5,6 +5,7 @@ use Livewire\Component;
 use StreetMesh\Chess\ChessExperience;
 use StreetMesh\Chess\Games;
 use StreetMesh\Venue\Gatherings\Gathering;
+use StreetMesh\Venue\Gatherings\Results;
 use StreetMesh\Venue\Visitors;
 
 new #[Title('Chess')] class extends Component
@@ -41,6 +42,21 @@ new #[Title('Chess')] class extends Component
             ->latest('concluded_at')
             ->limit(8)
             ->get();
+    }
+
+    /**
+     * Who is actually at each open table, asked of the hub.
+     *
+     * Kept apart from the games themselves because they answer different
+     * questions. A seat is the venue's record that somebody may play and
+     * outlives them closing the tab — it has to, or an opponent could take
+     * their chair while they reconnected. This is the room right now.
+     *
+     * @return array<string, array<int, array{name: string, seat: string}>>
+     */
+    public function present(): array
+    {
+        return app(Results::class)->at($this->open());
     }
 
     public function start(): void
@@ -85,13 +101,41 @@ new #[Title('Chess')] class extends Component
         </flux:button>
     </div>
 
+    @php($present = $this->present())
+
     @forelse ($this->open() as $game)
+        @php($here = $present[$game->room()] ?? null)
+
         <flux:card class="flex items-center justify-between gap-4">
             <div class="flex flex-col gap-1">
                 <flux:heading>{{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}</flux:heading>
-                <flux:text class="text-sm">
-                    {{ trans_choice('{1}one player waiting|[2,*]:count at the table', $game->seats_count, ['count' => $game->seats_count]) }}
-                </flux:text>
+
+                {{--
+                    Who is there, not who has ever been there.
+
+                    The seat count is the venue's record and outlives everybody
+                    leaving — a table nobody has opened in a week still had two
+                    people sit down at it once. What a person reading this wants
+                    to know is whether anybody is there now.
+
+                    Nothing at all if the hub did not answer. A number this
+                    server cannot stand behind is worse than no number.
+                --}}
+                @if ($here !== null)
+                    <flux:text class="text-sm">
+                        @php($playing = collect($here)->filter(fn ($who) => $who['seat'] !== '')->count())
+                        @php($watching = count($here) - $playing)
+
+                        @if ($here === [])
+                            {{ __('Nobody here right now') }}
+                        @else
+                            {{ trans_choice('{1}one playing|[2,*]:count playing', $playing, ['count' => $playing]) }}
+                            @if ($watching > 0)
+                                · {{ trans_choice('{1}one watching|[2,*]:count watching', $watching, ['count' => $watching]) }}
+                            @endif
+                        @endif
+                    </flux:text>
+                @endif
             </div>
 
             {{--
