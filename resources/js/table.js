@@ -150,6 +150,14 @@ export default function chessTable(ticketUrl, settleUrl, seat) {
         room: null,
         settling: false,
 
+        /**
+         * A knight, for the line saying which side you are playing.
+         *
+         * The same artwork the board draws, taken from the same table. A second
+         * copy of a path would be a second thing to keep in step for no reason.
+         */
+        knight: artwork('n'),
+
         async init() {
             let admitted
 

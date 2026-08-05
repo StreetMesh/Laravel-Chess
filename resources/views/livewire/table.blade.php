@@ -81,7 +81,28 @@ new #[Title('Chess')] class extends Component
             <div class="flex w-full items-center justify-between gap-4">
                 <flux:text>
                     <span x-show="!seat">{{ __('Watching') }}</span>
-                    <span x-show="seat" x-text="`You are ${seat}`"></span>
+
+                    {{--
+                        Which side you are, in the colour you are. The knight is
+                        the same artwork the board draws, filled from the same
+                        two values — so "you are black" is answered by the thing
+                        on the board rather than by the word alone.
+
+                        A light rim on both, because a pearl piece on a white
+                        page has nothing else to be seen against.
+                    --}}
+                    <span x-show="seat" class="flex items-center gap-2 font-semibold">
+                        <svg
+                            viewBox="0 0 512 512"
+                            class="size-4 shrink-0 overflow-visible stroke-slate-300 stroke-[24] [paint-order:stroke]"
+                            :class="seat === 'white' ? 'fill-[#e6e0d6]' : 'fill-slate-800'"
+                            aria-hidden="true"
+                        >
+                            <path :d="knight.path" :transform="knight.transform"></path>
+                        </svg>
+
+                        <span x-text="`You are ${seat}`"></span>
+                    </span>
                 </flux:text>
 
                 <flux:text x-text="status"></flux:text>
