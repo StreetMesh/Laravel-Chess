@@ -90,12 +90,19 @@ new #[Title('Chess')] class extends Component
 
                         A light rim on both, because a pearl piece on a white
                         page has nothing else to be seen against.
+
+                        The pearl is written out here and again on the board
+                        below, and the two have to agree. Naming it once would
+                        mean a colour defined in the host's stylesheet, and this
+                        package would lose its pale pieces in any host that had
+                        not been told about it — Tailwind only generates what it
+                        finds written down.
                     --}}
                     <span x-show="seat" class="flex items-center gap-2 font-semibold">
                         <svg
                             viewBox="0 0 512 512"
                             class="size-4 shrink-0 overflow-visible stroke-slate-300 stroke-[24] [paint-order:stroke]"
-                            :class="seat === 'white' ? 'fill-[#e6e0d6]' : 'fill-slate-800'"
+                            :class="seat === 'white' ? 'fill-[#dcd6cc]' : 'fill-slate-800'"
                             aria-hidden="true"
                         >
                             <path :d="knight.path" :transform="knight.transform"></path>
@@ -214,7 +221,7 @@ new #[Title('Chess')] class extends Component
                                 x-show="cell.piece"
                                 viewBox="0 0 512 512"
                                 class="size-[65%] overflow-visible stroke-white stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
-                                :class="cell.white ? 'fill-[#e6e0d6]' : 'fill-slate-800'"
+                                :class="cell.white ? 'fill-[#dcd6cc]' : 'fill-slate-800'"
                                 aria-hidden="true"
                             >
                                 <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>
