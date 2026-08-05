@@ -55,7 +55,32 @@ new #[Title('Chess')] class extends Component
             <flux:callout.heading>{{ __('There is no game here') }}</flux:callout.heading>
             <flux:callout.text>{{ __('It may have finished, or the link may be wrong.') }}</flux:callout.text>
         </flux:callout>
-    @elseif (! $game->isOpen())
+    @else
+        {{--
+            Which table this is, and the way out.
+
+            The key rather than "Chess": you know it is chess, you are looking
+            at a chessboard. What a screen cannot tell you is which of several
+            games you are in, and that is the thing somebody reads back to you.
+        --}}
+        <div class="flex items-center justify-between gap-4">
+            <flux:heading size="xl">
+                {{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}
+            </flux:heading>
+
+            <flux:button
+                :href="route('chess.lobby')"
+                size="sm"
+                variant="outline"
+                icon:trailing="arrow-right"
+                wire:navigate
+            >
+                {{ __('Lobby') }}
+            </flux:button>
+        </div>
+    @endif
+
+    @if ($game !== null && ! $game->isOpen())
         {{--
             A game that is over is drawn from what the venue kept, not from a
             room. The hub forgot this the moment the last person left it, so
@@ -130,12 +155,8 @@ new #[Title('Chess')] class extends Component
             @elseif (($outcome['moves'] ?? []) !== [])
                 <flux:text class="font-mono text-xs">{{ implode(' ', (array) $outcome['moves']) }}</flux:text>
             @endif
-
-            <flux:button :href="route('chess.lobby')" size="sm" variant="ghost" wire:navigate>
-                {{ __('Back to chess') }}
-            </flux:button>
         </div>
-    @else
+    @elseif ($game !== null)
         {{--
             The board is drawn and driven by the hub, not by Livewire.
 
