@@ -141,23 +141,30 @@ new #[Title('Chess')] class extends Component
         <flux:card class="flex items-center justify-between gap-4">
             <div class="flex flex-col gap-1">
                 {{--
-                    Who is playing, which is what somebody scanning this list is
-                    actually looking for. The key is a ULID and tells nobody
-                    anything; it is only there when there is no better answer.
+                    Three lines, answering three different questions: which
+                    table this is, whose game it is, and whether anybody is
+                    there.
+
+                    The key names the table and never changes, which is what
+                    makes it worth keeping — it is how you tell two games
+                    between the same two people apart, and what somebody would
+                    read back to you.
                 --}}
                 @php($players = $this->players($game))
 
-                <flux:heading>
-                    @if (($players['white'] ?? '') !== '' && ($players['black'] ?? '') !== '')
-                        {{ $players['white'] }} {{ __('vs') }} {{ $players['black'] }}
-                    @elseif (($players['white'] ?? '') !== '' || ($players['black'] ?? '') !== '')
-                        {{ __(':player is waiting for an opponent', [
-                            'player' => $players['white'] ?: $players['black'],
-                        ]) }}
-                    @else
-                        {{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}
-                    @endif
-                </flux:heading>
+                <flux:heading>{{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}</flux:heading>
+
+                @if (($players['white'] ?? '') !== '' || ($players['black'] ?? '') !== '')
+                    <flux:text class="text-sm">
+                        @if (($players['white'] ?? '') !== '' && ($players['black'] ?? '') !== '')
+                            {{ $players['white'] }} {{ __('vs') }} {{ $players['black'] }}
+                        @else
+                            {{ __(':player is waiting for an opponent', [
+                                'player' => $players['white'] ?: $players['black'],
+                            ]) }}
+                        @endif
+                    </flux:text>
+                @endif
 
                 {{--
                     Who is there, not who has ever been there.
