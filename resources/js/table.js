@@ -132,6 +132,111 @@ function squaresFrom(fen, flipped) {
     return ordered.map((cell) => ({ ...cell, dark: (cell.rank + cell.file) % 2 === 1 }))
 }
 
+/**
+ * A finished game, walked through.
+ *
+ * Reads positions the room recorded while it was being played rather than
+ * working them out, so nothing here knows the rules. Deriving them would be a
+ * second implementation of chess for the sake of reading a game that has
+ * already been decided.
+ *
+ * It answers the four questions the board asks of whatever is holding it, and
+ * the answers are all "no": nothing is yours to move, nothing is selected,
+ * nothing is a target, and clicking does nothing.
+ */
+export function chessReplay(positions, moves, seat) {
+    return {
+        positions,
+        moves,
+        at: 0,
+        playing: false,
+        timer: null,
+
+        squares: [],
+        myMove: false,
+        selected: null,
+
+        isTarget() {
+            return false
+        },
+
+        choose() {},
+
+        init() {
+            this.show(0)
+        },
+
+        get last() {
+            return Math.max(0, this.positions.length - 1)
+        },
+
+        /**
+         * The move that led to the position being shown, or nothing at the
+         * start — there are one more positions than moves, because the first
+         * one is the board before anybody had done anything.
+         */
+        get playedHere() {
+            return this.at > 0 ? this.moves[this.at - 1] : ''
+        },
+
+        show(index) {
+            this.at = Math.min(Math.max(index, 0), this.last)
+            this.squares = squaresFrom(this.positions[this.at] ?? '', seat === 'black')
+        },
+
+        step(by) {
+            this.stop()
+            this.show(this.at + by)
+        },
+
+        /**
+         * The same two sounds the live board makes, for the same reason: a move
+         * you can hear is a move you noticed.
+         */
+        advance() {
+            if (this.at >= this.last) {
+                this.stop()
+
+                return
+            }
+
+            this.show(this.at + 1)
+
+            this.playedHere.includes('x') ? capture() : place()
+        },
+
+        play() {
+            permit()
+
+            if (this.playing) {
+                this.stop()
+
+                return
+            }
+
+            // Watching from the end means watching it again.
+            if (this.at >= this.last) {
+                this.show(0)
+            }
+
+            this.playing = true
+            this.timer = setInterval(() => this.advance(), 900)
+        },
+
+        stop() {
+            this.playing = false
+            clearInterval(this.timer)
+            this.timer = null
+        },
+
+        // Nothing here outlives the page, but a timer left running after
+        // navigating away is a timer still making noises.
+        destroy() {
+            this.stop()
+        },
+    }
+}
+
 export default function chessTable(ticketUrl, settleUrl, seat) {
     return {
         seat,

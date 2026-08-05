@@ -10,6 +10,6 @@
  * nothing at all.
  */
 
-import chessTable from './table.js'
+import chessTable, { chessReplay } from './table.js'
 
-export default { chessTable }
+export default { chessTable, chessReplay }

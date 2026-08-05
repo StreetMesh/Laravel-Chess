@@ -30,6 +30,19 @@ export const ChessState = schema(
     /** Moves so far, so a screen can show the game rather than the position. */
     moves: ['string'],
 
+    /**
+     * The position after each of them, starting from the opening one.
+     *
+     * Kept so a finished game can be replayed without anybody else having to
+     * know the rules. Working the positions out from the moves means a second
+     * implementation of chess — in a browser, or in the venue — and the whole
+     * arrangement here exists to avoid having two.
+     *
+     * This side already has them: it made each one deciding whether the move
+     * was legal.
+     */
+    positions: ['string'],
+
     /** `white`, `black`, or empty once nobody is to move. */
     turn: 'string',
 
@@ -78,6 +91,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
     this.state = new ChessState({
       fen: this.game.fen(),
       moves: [],
+      positions: [this.game.fen()],
       turn: 'white',
       legal: [],
       outcome: '',
@@ -227,6 +241,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
       })
 
       this.state.moves.push(played.san)
+      this.state.positions.push(this.game.fen())
     } catch {
       client.send('refused', { because: 'That is not a legal move.' })
 
@@ -262,6 +277,10 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
    * The moves as well as the outcome, so the record is the game rather than
    * the scoreline — a record you can replay is worth keeping, and one that
    * says only "white won" is barely worth signing.
+   *
+   * And the positions, so replaying it needs no rules. Anybody who had to
+   * derive them would be implementing chess a second time to read a game that
+   * had already been decided.
    */
   result(): Record<string, unknown> | null {
     if (this.state.outcome === '') {
@@ -272,6 +291,7 @@ export class ChessRoom extends VenueRoom<ChessStateType> {
       outcome: this.state.outcome,
       winner: this.state.winner,
       moves: [...this.state.moves],
+      positions: [...this.state.positions],
       fen: this.state.fen,
     }
   }

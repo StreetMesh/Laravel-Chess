@@ -78,7 +78,7 @@ final class Games
      * Somebody having withdrawn permission is an ordinary answer, and the
      * opponent should still get their record.
      *
-     * @param  array{outcome: string, winner: string, moves: array<int, string>, fen: string}  $result
+     * @param  array{outcome: string, winner: string, moves: array<int, string>, positions?: array<int, string>, fen: string}  $result
      * @return array<string, string> what was written, by seat
      */
     public function settle(Gathering $game, array $result): array
@@ -94,6 +94,11 @@ final class Games
                 'outcome' => $result['outcome'],
                 'winner' => $result['winner'],
                 'moves' => array_values($result['moves']),
+
+                // The position after each move, so a finished game can be
+                // replayed by anybody without them having to know the rules.
+                'positions' => array_values($result['positions'] ?? []),
+
                 'fen' => $result['fen'],
             ]);
         }
@@ -127,7 +132,7 @@ final class Games
      * is — "you won" rather than "white won", so it reads as a thing that
      * happened to them rather than a row in somebody's database.
      *
-     * @param  array{outcome: string, winner: string, moves: array<int, string>, fen: string}  $result
+     * @param  array{outcome: string, winner: string, moves: array<int, string>, positions?: array<int, string>, fen: string}  $result
      * @return array<string, mixed>
      */
     private function claims(Gathering $game, Seat $seat, array $result): array

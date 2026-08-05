@@ -53,6 +53,7 @@ final class SettleController
             'outcome' => (string) ($result['outcome'] ?? ''),
             'winner' => (string) ($result['winner'] ?? ''),
             'moves' => array_values((array) ($result['moves'] ?? [])),
+            'positions' => array_values((array) ($result['positions'] ?? [])),
             'fen' => (string) ($result['fen'] ?? ''),
         ]);
 
