@@ -88,20 +88,11 @@ new #[Title('Chess')] class extends Component
                     @endif
                 </flux:callout.heading>
 
-                {{--
-                    The point of the whole exercise, said where it happened: the
-                    venue ran the game and keeps a copy, and the record that
-                    counts is on the server each player chose to live on.
-                --}}
-                <flux:callout.text>
-                    @if ($this->seat() !== '')
+                @if ($this->seat() !== '')
+                    <flux:callout.text>
                         {{ __('You were :seat.', ['seat' => $this->seat()]) }}
-                    @endif
-
-                    @if (($outcome['outcome'] ?? '') === '')
-                        {{ __('This venue kept no record of how it ended.') }}
-                    @endif
-                </flux:callout.text>
+                    </flux:callout.text>
+                @endif
             </flux:callout>
 
             {{--
