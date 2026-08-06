@@ -27,7 +27,7 @@ final class SettleController
     {
         $game = Gathering::query()
             ->where('experience', ChessExperience::COLLECTION)
-            ->where('key', $key)
+            ->keyed($key)
             ->first();
 
         if ($game === null) {

@@ -100,4 +100,16 @@ final class ChessExperience implements Experience, Settles
     {
         return [(string) Scope::forRepo([self::COLLECTION], [Scope::CREATE])];
     }
+
+    /**
+     * The referee, which is not written in PHP and does not run here.
+     *
+     * Chess needs somebody to hold the board and refuse an illegal move, so
+     * this package ships a room next to the screens. The venue copies it into
+     * the hub it builds.
+     */
+    public function room(): string
+    {
+        return realpath(__DIR__.'/../room') ?: __DIR__.'/../room';
+    }
 }

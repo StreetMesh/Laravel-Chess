@@ -27,7 +27,7 @@ final class SitController
     {
         $game = Gathering::query()
             ->where('experience', ChessExperience::COLLECTION)
-            ->where('key', $key)
+            ->keyed($key)
             ->first();
 
         $visitor = $visitors->current(request());

@@ -12,7 +12,7 @@
  * being safe here.
  *
  *   ./plc-serve && ./hub-serve      (in StreetMesh/Server)
- *   node --experimental-strip-types packages/laravel-chess/hub/check-rules.ts
+ *   node --experimental-strip-types packages/laravel-chess/room/check-rules.ts
  */
 
 import { execFileSync } from 'node:child_process'

@@ -1,5 +1,5 @@
 /**
- * Four sounds: a piece picked up, put back, set down, and taken.
+ * Five sounds: a piece picked up, put back, set down, taken — and refused.
  *
  * Made rather than loaded. Four short noises are a few lines of arithmetic and
  * no files, which keeps installing this experience one step — a package that
@@ -266,4 +266,34 @@ export function capture() {
         body.start(at)
         body.stop(at + 0.16)
     })
+}
+
+/**
+ * No.
+ *
+ * Two low notes a semitone apart, sounded together and cut off short. A
+ * flattened second is the interval that has meant "wrong" for four hundred
+ * years, and it does not have to be loud to land — this answers a move that
+ * was never going to happen, not a fault.
+ *
+ * It insists, because it is the only answer to something the player did: a
+ * refusal nobody hears is a board that ignored them.
+ */
+export function refuse() {
+    play((ctx, at) => {
+        const shape = ctx.createGain()
+        shape.gain.setValueAtTime(0.05, at)
+        shape.gain.exponentialRampToValueAtTime(0.0006, at + 0.16)
+        shape.connect(ctx.destination)
+
+        for (const hertz of [196, 185]) {
+            const tone = ctx.createOscillator()
+            tone.type = 'triangle'
+            tone.frequency.setValueAtTime(hertz, at)
+
+            tone.connect(shape)
+            tone.start(at)
+            tone.stop(at + 0.17)
+        }
+    }, true)
 }

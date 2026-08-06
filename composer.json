@@ -17,23 +17,69 @@
         "phpunit/phpunit": "^11.4"
     },
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/StreetMesh/Laravel-Venue.git" },
-        { "type": "vcs", "url": "https://github.com/StreetMesh/Protocol-Laravel.git" },
-        { "type": "vcs", "url": "https://github.com/StreetMesh/Protocol-PHP.git" }
+        {
+            "type": "path",
+            "url": "../protocol-laravel",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../laravel-venue",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../protocol",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/StreetMesh/Laravel-Venue.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/StreetMesh/Protocol-Laravel.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/StreetMesh/Protocol-PHP.git"
+        }
     ],
-    "autoload": { "psr-4": { "StreetMesh\\Chess\\": "src/" } },
-    "autoload-dev": { "psr-4": { "StreetMesh\\Chess\\Tests\\": "tests/" } },
-    "extra": {
-        "laravel": {
-            "providers": [ "StreetMesh\\Chess\\ChessServiceProvider" ]
+    "autoload": {
+        "psr-4": {
+            "StreetMesh\\Chess\\": "src/"
         }
     },
-    "config": { "sort-packages": true },
+    "autoload-dev": {
+        "psr-4": {
+            "StreetMesh\\Chess\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "StreetMesh\\Chess\\ChessServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
         "lint:check": "pint --test",
         "types:check": "phpstan analyse",
-        "test": [ "@lint:check", "@types:check", "phpunit" ]
+        "test": [
+            "@lint:check",
+            "@types:check",
+            "phpunit"
+        ]
     }
 }

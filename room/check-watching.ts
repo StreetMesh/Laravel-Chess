@@ -10,7 +10,7 @@
  * and that is much harder to notice than being refused.
  *
  *   ./plc-serve && ./hub-serve      (in StreetMesh/Server)
- *   node --experimental-strip-types packages/laravel-chess/hub/check-watching.ts
+ *   node --experimental-strip-types packages/laravel-chess/room/check-watching.ts
  */
 
 import { execFileSync } from 'node:child_process'

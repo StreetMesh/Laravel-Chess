@@ -11,7 +11,7 @@
  */
 
 import { Client } from 'colyseus.js'
-import { capture, drop, lift, permit, place } from './sounds.js'
+import { capture, drop, lift, permit, place, refuse } from './sounds.js'
 
 /**
  * Piece artwork from Font Awesome Free, used under CC BY 4.0.
@@ -209,6 +209,10 @@ export function chessReplay({ positions, moves, seat, outcome, winner, white, bl
         players: { white, black },
         knight: artwork('n'),
         over: true,
+
+        /** A finished game has no socket to lose. Answered so the board, which
+         *  both components draw, can ask without knowing which one it is in. */
+        disconnected: false,
         at: 0,
 
         /*
@@ -232,6 +236,25 @@ export function chessReplay({ positions, moves, seat, outcome, winner, white, bl
         },
 
         choose() {},
+
+        /*
+         * A finished game has nothing to pick up. The board asks all of these
+         * because it does not know which component it is drawing in, and the
+         * answers here are the same "no" as the rest.
+         */
+        drag: null,
+
+        canMoveFrom() {
+            return false
+        },
+
+        clicked() {},
+
+        startDrag() {},
+
+        moveDrag() {},
+
+        endDrag() {},
 
         endingFor(side) {
             return endingFor(this.over, side, this.near, this.outcome, this.winner)
@@ -364,6 +387,31 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
         /** The side whose king is under attack, as the room reports it. */
         check: '',
 
+        /** Between pointerdown and the threshold that makes it a drag. */
+        holding: null,
+
+        /** Set when a drag ends, so the click it causes is ignored once. */
+        dropped: false,
+
+        /**
+         * The piece currently in somebody's hand, or null.
+         *
+         * Holds where it came from and where the pointer is, so the board can
+         * draw it under the cursor and work out what it was dropped on. Null
+         * between drags, which is also how everything drawn from it stays
+         * hidden without a second flag.
+         */
+        drag: null,
+
+        /**
+         * Whether the socket is gone.
+         *
+         * Not a status message. A dropped table looks identical to a live one
+         * — the pieces are where they were, the names are still under them —
+         * so this is what turns the board grey and offers the way back.
+         */
+        disconnected: false,
+
         /** How it ended, once it has. */
         outcome: '',
         winner: '',
@@ -432,7 +480,30 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
          */
         knight: artwork('n'),
 
-        async init() {
+        init() {
+            this.connect()
+        },
+
+        /**
+         * Open the table, or say why not.
+         *
+         * Separate from `init` because it happens more than once now: a socket
+         * that dropped while nobody was looking is reopened by the same route,
+         * not by reloading the page and losing the board.
+         */
+        async connect() {
+            this.disconnected = false
+            this.trouble = ''
+            this.status = 'Connecting…'
+
+            /*
+             * The next delivery is the game so far rather than anything that
+             * has just happened, so it makes no noise — the same rule as the
+             * first one. Coming back to four moves having been played should
+             * not sound like four pieces landing at once.
+             */
+            this.synced = false
+
             /*
              * Somebody who has followed an invitation has no place here yet, so
              * there is no ticket to ask for and nothing to join. The board they
@@ -512,7 +583,10 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
 
                 this.over = state.outcome !== ''
 
-                this.status = this.over ? '' : `${state.turn} to move`
+                // "Waiting for black" rather than "black to move": this sits in
+                // the corner of somebody's own screen, and what it is telling
+                // them is why nothing is happening.
+                this.status = this.over ? '' : `Waiting for ${state.turn}`
 
                 /*
                  * A game that has just ended becomes a record of itself, here,
@@ -536,15 +610,46 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
                 }
             })
 
-            // A refusal is an answer, and belongs on screen rather than in a log.
+            /*
+             * A refused move is answered with a noise, not a banner.
+             *
+             * It is the commonest thing the room ever says and the least
+             * serious: a piece dragged somewhere it cannot go. A red callout
+             * for that reads as a fault in the page, and it appears exactly
+             * where somebody is looking at the board. A short low interval
+             * says "no" in the register the rest of the board already speaks.
+             *
+             * The reason still goes to the console, because a refusal we did
+             * not expect is worth being able to read.
+             */
             this.room.onMessage('refused', ({ because }) => {
-                this.trouble = because
-                setTimeout(() => (this.trouble = ''), 2500)
+                refuse()
+                console.debug('[chess] the room refused a move:', because)
+
+                // Put the piece back down. Holding a selection that was just
+                // turned away invites the same move again.
+                this.selected = null
             })
 
             this.room.onLeave(() => {
-                this.status = 'Disconnected'
+                /*
+                 * Said as a state rather than as a word in the status line, so
+                 * the board can go quiet and the one useful action can be
+                 * offered. A table that has dropped looks exactly like a live
+                 * one otherwise, which is how somebody comes back from lunch
+                 * and cannot work out why their move does nothing.
+                 */
+                this.disconnected = true
+                this.status = ''
             })
+        },
+
+        /** Try the same door again. */
+        reconnect() {
+            this.room?.leave()
+            this.room = null
+
+            this.connect()
         },
 
         /**
@@ -560,27 +665,56 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
          * the address into the sentence as well would show it twice in most of
          * them.
          *
-         * Where there is no share sheet — most desktop browsers — the whole
-         * thing goes on the clipboard instead, which is what somebody was going
-         * to do with it anyway.
+         * Two of them, because they are two different intentions. Somebody
+         * copying a link is about to paste it somewhere themselves; somebody
+         * sharing is handing it to a person. One button that chose between them
+         * by asking the browser what it supported got this wrong both ways.
          */
-        async invite() {
-            const sentence = `Hey, let's play Chess.`
+        get canShare() {
+            return Boolean(navigator.share)
+        },
 
+        /**
+         * The address on its own.
+         *
+         * Nothing else with it. A copied link gets pasted into an address bar,
+         * and a sentence in front of it makes it no longer a link.
+         */
+        async copyLink() {
             try {
-                if (navigator.share) {
-                    await navigator.share({ title: 'Chess', text: sentence, url: invitation })
-
-                    return
-                }
-
-                await navigator.clipboard.writeText(`${sentence} ${invitation}`)
-                this.invited = 'Link copied'
-            } catch (cancelled) {
-                // Dismissing the share sheet throws, and is not a failure — it
-                // is somebody deciding not to. Nothing to say about it.
+                await navigator.clipboard.writeText(invitation)
+            } catch (refused) {
+                // A browser that will not write to the clipboard without a
+                // gesture it recognises. Nothing useful to say, and nothing to
+                // be done from here.
                 return
             }
+
+            this.said('Link copied')
+        },
+
+        /**
+         * Wherever that person actually talks to their opponent.
+         *
+         * The sentence and the address go separately because that is what a
+         * share sheet expects: a target that can make a link out of a URL does,
+         * and one that cannot puts the two together itself.
+         */
+        async share() {
+            try {
+                await navigator.share({ title: 'Chess', text: `Hey, let's play Chess.`, url: invitation })
+            } catch (cancelled) {
+                // Dismissing the sheet throws, and is not a failure — it is
+                // somebody deciding not to.
+                return
+            }
+
+            this.said('Shared')
+        },
+
+        /** Said on the button itself, and taken back shortly after. */
+        said(what) {
+            this.invited = what
 
             setTimeout(() => (this.invited = ''), 2500)
         },
@@ -659,6 +793,20 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
          */
         get alone() {
             return !this.players[this.far]
+        },
+
+        /**
+         * Whether this is a table waiting for somebody rather than a game.
+         *
+         * The header shows one of three things in that one place — a way to
+         * invite, whose turn it is, or the way back from a dropped socket.
+         *
+         * Not `asking`: the Resign button already owns that word, for asking
+         * whether you meant it, and two meanings in one subtree is one too
+         * many.
+         */
+        get waiting() {
+            return Boolean(this.seat) && this.alone && !this.over
         },
 
         /** The short name this game shows, from the whole one it holds. */
@@ -804,6 +952,132 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
          */
         canMoveFrom(square) {
             return this.legal.some((move) => move.startsWith(square))
+        },
+
+        /**
+         * A click, unless it is the tail end of a drag.
+         *
+         * Releasing a drag over a square makes the browser fire a click on the
+         * square it started from, which would put the piece straight back down
+         * again. The drag has already said what it meant.
+         */
+        clicked(square) {
+            if (this.dropped) {
+                this.dropped = false
+
+                return
+            }
+
+            this.choose(square)
+        },
+
+        /**
+         * Picking a piece up, maybe.
+         *
+         * Nothing is decided here. A press that never moves is a click and is
+         * left entirely to `clicked`, so tapping to select behaves exactly as
+         * it did — dragging is something added on top rather than a second way
+         * of doing the same job.
+         */
+        startDrag(event, square) {
+            if (!this.myMove || !this.canMoveFrom(square)) {
+                return
+            }
+
+            this.holding = { square, x: event.clientX, y: event.clientY, id: event.pointerId }
+
+            // So the rest of the gesture arrives here even when the pointer
+            // leaves this square, which on a small board it does immediately.
+            event.currentTarget.setPointerCapture(event.pointerId)
+        },
+
+        /**
+         * Far enough to mean it.
+         *
+         * The threshold is what keeps a click a click: a mouse moves a pixel or
+         * two between press and release, and without this every click would
+         * become a drag that landed back where it started.
+         */
+        moveDrag(event) {
+            if (!this.holding) {
+                return
+            }
+
+            const far = Math.abs(event.clientX - this.holding.x) + Math.abs(event.clientY - this.holding.y) > 6
+
+            if (!this.drag && !far) {
+                return
+            }
+
+            if (!this.drag) {
+                this.pickUp(this.holding.square)
+
+                this.drag = { from: this.holding.square, cell: this.pieceOn(this.holding.square) }
+            }
+
+            this.drag = { ...this.drag, x: event.clientX, y: event.clientY }
+        },
+
+        /**
+         * Letting go.
+         *
+         * A drag always ends with the piece out of your hand: either it moved,
+         * or it went back where it came from. Nothing is left selected by
+         * letting go, which is the whole of the coordination between the two
+         * ways of playing — a piece that stayed selected after being put down
+         * was one you could pick up again and have it fall out of your hand,
+         * because picking up and putting down are the same click.
+         *
+         * Where it landed is asked of the document rather than tracked, because
+         * the pointer is captured and every event says it is over the square it
+         * started on.
+         */
+        endDrag(event) {
+            if (!this.drag) {
+                this.holding = null
+
+                return
+            }
+
+            const from = this.drag.from
+            const under = document.elementFromPoint(event.clientX, event.clientY)
+            const landed = under?.closest('[data-square]')?.dataset.square
+
+            this.drag = null
+            this.holding = null
+            this.dropped = true
+
+            // Back where it started, or off the board altogether. Neither is a
+            // move, and both are somebody changing their mind.
+            if (!landed || landed === from) {
+                this.selected = null
+                drop()
+
+                return
+            }
+
+            this.choose(landed)
+        },
+
+        /**
+         * Into your hand, and only ever into it.
+         *
+         * `choose` toggles — the same click picks a piece up and puts it back —
+         * which is right for clicking and wrong for grabbing. A piece already
+         * selected and then grabbed would be released while you were still
+         * holding it, and the drag that followed had nothing in hand.
+         */
+        pickUp(square) {
+            if (this.selected === square) {
+                return
+            }
+
+            this.choose(square)
+        },
+
+        /** The square being carried, artwork and side and all. */
+        pieceOn(square) {
+            return this.squares.find((cell) => cell.name === square) ?? null
         },
 
         /**

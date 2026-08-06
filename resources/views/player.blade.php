@@ -111,7 +111,7 @@
             It asks before it acts, and cannot be taken back.
         --}}
         <span
-            x-show="seat && !over && !alone"
+            x-show="seat && !over && !alone && !disconnected"
             x-cloak
             class="ms-auto"
             x-data="{ asking: false }"

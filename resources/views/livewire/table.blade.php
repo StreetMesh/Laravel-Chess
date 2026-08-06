@@ -21,7 +21,7 @@ new #[Title('Chess')] class extends Component
     {
         return Gathering::query()
             ->where('experience', ChessExperience::COLLECTION)
-            ->where('key', $this->key)
+            ->keyed($this->key)
             ->first();
     }
 

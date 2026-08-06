@@ -120,7 +120,7 @@ new #[Title('Chess')] class extends Component
     public function sit(string $key): void
     {
         $visitor = app(Visitors::class)->current(request());
-        $game = Gathering::query()->where('key', $key)->first();
+        $game = Gathering::query()->keyed($key)->first();
 
         if ($visitor === null || $game === null) {
             return;

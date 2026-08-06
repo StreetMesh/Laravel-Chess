@@ -11,7 +11,7 @@
  * their own offer would be drawing unilaterally.
  *
  *   ./plc-serve && ./hub-serve      (in StreetMesh/Server)
- *   node --experimental-strip-types packages/laravel-chess/hub/check-endings.ts
+ *   node --experimental-strip-types packages/laravel-chess/room/check-endings.ts
  */
 
 import { execFileSync } from 'node:child_process'

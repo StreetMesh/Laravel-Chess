@@ -9,7 +9,7 @@
  * write to, and this has none. The venue's half is covered by SettleTest.
  *
  *   ./plc-serve && ./hub-serve      (in StreetMesh/Server)
- *   node --experimental-strip-types packages/laravel-chess/hub/check-settling.ts
+ *   node --experimental-strip-types packages/laravel-chess/room/check-settling.ts
  */
 
 import { execFileSync } from 'node:child_process'

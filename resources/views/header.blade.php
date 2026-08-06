@@ -50,23 +50,50 @@
             </flux:button>
         @elseif ($game->isOpen())
             {{--
-                Whose turn it is, unless there is nobody to take one — a table
-                with one person at it does not need telling that white is to
-                move, it needs the other player. The same space asks for them
-                instead, and goes back to the turn the moment somebody sits.
+                One place, three things, in order of what is worth doing.
+
+                A table whose socket has gone offers the way back. A table with
+                one person at it asks for the other — it does not need telling
+                that white is to move, it needs an opponent. Otherwise it says
+                whose turn it is.
             --}}
             <flux:button
-                x-show="seat && alone && !over"
+                x-show="disconnected"
                 x-cloak
                 size="sm"
                 variant="primary"
-                icon="arrow-up-on-square"
-                @click="invite()"
+                icon="arrow-path"
+                @click="reconnect()"
             >
-                <span x-text="invited || '{{ __('Invite opponent') }}'"></span>
+                {{ __('Reconnect') }}
             </flux:button>
 
-            <flux:text x-show="!(seat && alone && !over)" x-text="status"></flux:text>
+            {{--
+                Two ways to hand somebody the table, offered rather than
+                guessed at.
+
+                It used to be one button that picked for you: the share sheet
+                where the browser had one, the clipboard where it did not. Which
+                you got depended on the browser rather than on what you wanted.
+            --}}
+            <flux:dropdown x-show="!disconnected && waiting" x-cloak position="bottom" align="end">
+                <flux:button size="sm" variant="primary" icon="arrow-up-on-square" icon:trailing="chevron-down">
+                    <span x-text="invited || '{{ __('Invite opponent') }}'"></span>
+                </flux:button>
+
+                <flux:menu>
+                    <flux:menu.item icon="link" @click="copyLink()">
+                        {{ __('Copy link') }}
+                    </flux:menu.item>
+
+                    {{-- Only where the operating system has one to offer. --}}
+                    <flux:menu.item icon="arrow-up-on-square" x-show="canShare" @click="share()">
+                        {{ __('Share') }}
+                    </flux:menu.item>
+                </flux:menu>
+            </flux:dropdown>
+
+            <flux:text x-show="!disconnected && !waiting" x-text="status"></flux:text>
         @endif
 
         {{--
