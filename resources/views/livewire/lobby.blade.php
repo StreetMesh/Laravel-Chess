@@ -188,12 +188,21 @@ new #[Title('Chess')] class extends Component
                 <flux:heading>{{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}</flux:heading>
 
                 @if (($players['white'] ?? '') !== '' || ($players['black'] ?? '') !== '')
-                    <flux:text class="text-sm">
+                    {{--
+                        Labels rather than whole addresses, the same convention
+                        the board uses. The whole handle stays in the title.
+                    --}}
+                    @php($label = fn (string $handle): string => Str::before($handle, '.'))
+
+                    <flux:text
+                        class="text-sm"
+                        :title="trim(($players['white'] ?? '').' '.($players['black'] ?? ''))"
+                    >
                         @if (($players['white'] ?? '') !== '' && ($players['black'] ?? '') !== '')
-                            {{ $players['white'] }} {{ __('vs') }} {{ $players['black'] }}
+                            {{ $label($players['white']) }} {{ __('vs') }} {{ $label($players['black']) }}
                         @else
                             {{ __(':player is waiting for an opponent', [
-                                'player' => $players['white'] ?: $players['black'],
+                                'player' => $label($players['white'] ?: $players['black']),
                             ]) }}
                         @endif
                     </flux:text>

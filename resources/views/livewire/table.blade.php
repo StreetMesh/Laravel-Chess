@@ -92,7 +92,14 @@ new #[Title('Chess')] class extends Component
     padding again is how this screen ended up with twice the margins of the
     rest.
 --}}
-<div class="flex flex-col gap-6">
+{{--
+    Takes the height it is given, so the board can sit in the middle of it.
+
+    Flux's main area is a row of the body's grid and already has a height; this
+    fills it rather than collapsing to the height of a chessboard, and the group
+    below centres inside what the header leaves.
+--}}
+<div class="flex min-h-full flex-col gap-6">
     @php($game = $this->game())
 
     @if ($game === null)
@@ -125,20 +132,19 @@ new #[Title('Chess')] class extends Component
                 white: @js($this->players()['white'] ?? ''),
                 black: @js($this->players()['black'] ?? ''),
             })"
-            class="flex w-full flex-col items-center gap-4"
+            class="flex w-full flex-1 flex-col gap-4"
         >
             @include('chess::header')
 
-            @include('chess::ending')
-
             @if (($outcome['positions'] ?? []) !== [])
-                @include('chess::player', ['side' => 'far'])
+                {{-- Centred in what the header leaves, rather than stacked under it. --}}
+                <div class="m-auto flex w-full flex-col items-center gap-4">
+                    @include('chess::player', ['side' => 'far'])
 
-                @include('chess::board')
+                    @include('chess::board')
 
-                @include('chess::player', ['side' => 'near'])
-
-                @include('chess::replay')
+                    @include('chess::player', ['side' => 'near'])
+                </div>
             @endif
         </div>
     @elseif ($game !== null)
@@ -163,15 +169,24 @@ new #[Title('Chess')] class extends Component
                 white: @js($this->players()['white'] ?? ''),
                 black: @js($this->players()['black'] ?? ''),
             })"
-            class="flex flex-col items-center gap-4"
+            class="flex w-full flex-1 flex-col gap-4"
         >
             @include('chess::header')
 
-            <template x-if="trouble">
-                <flux:callout variant="danger" icon="exclamation-triangle" class="w-full">
-                    <flux:callout.text x-text="trouble"></flux:callout.text>
-                </flux:callout>
-            </template>
+            {{--
+                Said over the board rather than above it.
+
+                It is up for two and a half seconds. In the flow it moved the
+                board down on arrival and back up on the way out, which reads as
+                the board flinching at a message about something else.
+            --}}
+            <div class="relative z-10 h-0">
+                <template x-if="trouble">
+                    <flux:callout variant="danger" icon="exclamation-triangle" class="absolute inset-x-0 top-0">
+                        <flux:callout.text x-text="trouble"></flux:callout.text>
+                    </flux:callout>
+                </template>
+            </div>
 
             {{--
                 Who is playing, on the side of the board they are sitting at.
@@ -181,18 +196,14 @@ new #[Title('Chess')] class extends Component
                 is on neither side, black is above the way a board is drawn when
                 nobody in particular is looking at it.
             --}}
-            {{-- The moment it ends, this becomes the record of itself. --}}
-            @include('chess::ending')
+            {{-- Centred in what the header leaves, rather than stacked under it. --}}
+            <div class="m-auto flex w-full flex-col items-center gap-4">
+                @include('chess::player', ['side' => 'far'])
 
-            @include('chess::player', ['side' => 'far'])
+                @include('chess::board')
 
-            @include('chess::board')
-
-            @include('chess::player', ['side' => 'near'])
-
-            @include('chess::replay')
-
-            <flux:text class="font-mono text-xs" x-text="moves.join(' ')"></flux:text>
+                @include('chess::player', ['side' => 'near'])
+            </div>
         </div>
     @endif
 </div>

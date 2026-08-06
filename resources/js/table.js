@@ -133,26 +133,58 @@ function squaresFrom(fen, flipped) {
 }
 
 /**
- * How a finished game reads, from where you were sitting.
+ * The part of a handle this game puts on screen.
+ *
+ * `collegeman.stme.sh` shows as `collegeman`. A convention of this experience
+ * rather than of StreetMesh: a handle is a whole address and the rest of it
+ * matters everywhere else — it is what makes somebody findable, and it is the
+ * part that says which server they trusted with their identity.
+ *
+ * At a chess table it is noise. Two people are playing and the board is small.
+ * The whole address stays on the element, so it is one hover away and one
+ * inspection away, and nothing that leaves this screen is shortened.
+ *
+ * Two players from different servers can therefore look identically named. That
+ * is a real cost of the convention rather than an oversight.
+ */
+export function label(handle) {
+    return (handle ?? '').split('.')[0]
+}
+
+/**
+ * How a finished game reads, said beside the person it happened to.
+ *
+ * Which row gets it is the whole design: the winner's, so the sentence and the
+ * name are one statement rather than two things to reconcile. It named the
+ * winner when it stood on its own — "White won by resignation" — and beside
+ * white's own name that is saying it twice.
+ *
+ * A draw belongs to nobody, so it goes on the near row, where the eye already
+ * is. So does a game the venue concluded without keeping how.
  *
  * One sentence and one place that writes it, because the live board and a game
  * opened later say the same thing and used to say it in two languages — one in
  * Blade from the record, one here from the room.
+ *
+ * `over` is not decoration. A game in progress has no outcome yet, and a game
+ * the venue never concluded has none either; without being told which of those
+ * it is, an empty outcome read as "this game is over" and said so under the
+ * near player's name for the whole of a live game.
  */
-export function ending(outcome, winner, seat) {
+export function endingFor(over, side, near, outcome, winner) {
+    if (!over) {
+        return ''
+    }
+
     if (!outcome) {
-        return 'This game is over'
+        return side === near ? 'this game is over' : ''
     }
 
-    if (seat) {
-        if (!winner) {
-            return `You drew by ${outcome}`
-        }
-
-        return seat === winner ? `You won by ${outcome}` : `You lost by ${outcome}`
+    if (!winner) {
+        return side === near ? `drawn by ${outcome}` : ''
     }
 
-    return winner ? `${winner.charAt(0).toUpperCase()}${winner.slice(1)} won by ${outcome}` : `Drawn by ${outcome}`
+    return side === winner ? `won by ${outcome}` : ''
 }
 
 /**
@@ -201,8 +233,26 @@ export function chessReplay({ positions, moves, seat, outcome, winner, white, bl
 
         choose() {},
 
-        get ending() {
-            return ending(this.outcome, this.winner, this.seat)
+        endingFor(side) {
+            return endingFor(this.over, side, this.near, this.outcome, this.winner)
+        },
+
+        /**
+         * Whether the other chair is still empty.
+         *
+         * A question about the seat rather than about who is at the table this
+         * minute. It used to be both — one count of the people the room could
+         * see — so an opponent closing their tab turned back into somebody to
+         * invite, on a board still showing their name, and the game they were
+         * halfway through could no longer be resigned.
+         */
+        get alone() {
+            return !this.players[this.far]
+        },
+
+        /** The short name this game shows, from the whole one it holds. */
+        nameOf(side) {
+            return label(this.players[side])
         },
 
         /**
@@ -248,11 +298,6 @@ export function chessReplay({ positions, moves, seat, outcome, winner, white, bl
         show(index) {
             this.at = Math.min(Math.max(index, 0), this.last)
             this.squares = squaresFrom(this.positions[this.at] ?? '', seat === 'black')
-        },
-
-        step(by) {
-            this.stop()
-            this.show(this.at + by)
         },
 
         /**
@@ -318,16 +363,6 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
 
         /** The side whose king is under attack, as the room reports it. */
         check: '',
-
-        /**
-         * How many of the two chairs have somebody in them.
-         *
-         * Counted off the room rather than the venue's seats, because the
-         * question is whether there is a game on rather than who is entitled to
-         * one. Somebody who has opened a table and is waiting has a chair and no
-         * opponent, and there is nothing there to resign.
-         */
-        here: 0,
 
         /** How it ended, once it has. */
         outcome: '',
@@ -463,16 +498,18 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
                 this.outcome = state.outcome
                 this.winner = state.winner
 
-                let seated = 0
+                /*
+                 * Somebody who sits down while this page is open, which the
+                 * venue's own seats could not have said when it rendered.
+                 * Nobody is ever removed: leaving the table does not give up
+                 * the chair.
+                 */
                 state.occupants?.forEach((who) => {
-                    if (!who.seat) {
-                        return
+                    if (who.seat) {
+                        this.players[who.seat] = who.name
                     }
-
-                    seated += 1
-                    this.players[who.seat] = who.name
                 })
-                this.here = seated
+
                 this.over = state.outcome !== ''
 
                 this.status = this.over ? '' : `${state.turn} to move`
@@ -607,8 +644,26 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
             return this.at > 0 ? this.moves[this.at - 1] : ''
         },
 
-        get ending() {
-            return ending(this.outcome, this.winner, this.seat)
+        endingFor(side) {
+            return endingFor(this.over, side, this.near, this.outcome, this.winner)
+        },
+
+        /**
+         * Whether the other chair is still empty.
+         *
+         * A question about the seat rather than about who is at the table this
+         * minute. It used to be both — one count of the people the room could
+         * see — so an opponent closing their tab turned back into somebody to
+         * invite, on a board still showing their name, and the game they were
+         * halfway through could no longer be resigned.
+         */
+        get alone() {
+            return !this.players[this.far]
+        },
+
+        /** The short name this game shows, from the whole one it holds. */
+        nameOf(side) {
+            return label(this.players[side])
         },
 
         /**
@@ -629,11 +684,6 @@ export default function chessTable({ ticketUrl, settleUrl, seat, invitation, whi
         show(index) {
             this.at = Math.min(Math.max(index, 0), this.last)
             this.squares = squaresFrom(this.positions[this.at] ?? '', this.seat === 'black')
-        },
-
-        step(by) {
-            this.stop()
-            this.show(this.at + by)
         },
 
         advance() {

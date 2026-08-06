@@ -35,13 +35,32 @@
         50% { transform: translateX(-2%) rotate(-2deg); }
     }
 
-    .chess-in-check {
+    .chess-piece[data-check] {
         animation: chess-check 1.6s ease-in-out infinite;
         transform-origin: 50% 85%;
     }
 
+    /*
+        Which side a piece is on, said in an attribute rather than in a class.
+        Safari would not take the class off again.
+
+        A square only ever goes from holding a white piece to holding a black
+        one when black captures. Safari left the pearl class on and added the
+        dark one under it, so a pawn came out ivory on the square of the bishop
+        it had just taken. The other direction looked fine, because adding is
+        the half that worked. Alpine does this correctly against a spec DOM,
+        which is why it survived being read several times.
+
+        An attribute holds one value. Nothing is added or removed, so there is
+        nothing to be left behind, in this engine or the next one.
+    */
+    /* The player rows draw the same pieces and use these too. */
+    .chess-piece { fill: #1e293b; }
+    .chess-piece[data-side='white'] { fill: #dcd6cc; }
+    .dark .chess-piece[data-side='white'] { fill: #c0b6a2; }
+
     @media (prefers-reduced-motion: reduce) {
-        .chess-in-check { animation: none; }
+        .chess-piece[data-check] { animation: none; }
     }
 </style>
 {{--
@@ -157,11 +176,9 @@
                 <svg
                     x-show="cell.piece"
                     viewBox="0 0 512 512"
-                    class="size-[65%] overflow-visible stroke-white stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
-                    :class="[
-                                    cell.white ? 'fill-[#dcd6cc]' : 'fill-slate-800',
-                                    inCheck(cell) ? 'chess-in-check' : '',
-                                ]"
+                    class="chess-piece size-[65%] overflow-visible stroke-white stroke-[66] drop-shadow-[0_3px_2px_#00000059] [paint-order:stroke]"
+                    :data-side="cell.white ? 'white' : 'black'"
+                    :data-check="inCheck(cell) ? 'yes' : null"
                     aria-hidden="true"
                 >
                     <path :d="cell.piece?.path" :transform="cell.piece?.transform"></path>

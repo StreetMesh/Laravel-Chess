@@ -16,7 +16,24 @@
     </flux:heading>
 
     <div class="flex items-center gap-3">
-        @if (! $this->seated())
+        {{--
+            Playing a finished game back, beside its name rather than under the
+            board. There is one control now: stepping through it a move at a
+            time was a third and a fourth button for something nobody was asking
+            to do that precisely.
+        --}}
+        <flux:button
+            x-show="over"
+            x-cloak
+            size="sm"
+            variant="outline"
+            icon="play"
+            @click="play()"
+        >
+            <span x-text="playing ? '{{ __('Pause') }}' : '{{ __('Replay') }}'"></span>
+        </flux:button>
+
+        @if ($game->isOpen() && ! $this->seated())
             {{--
                 The one thing on offer to somebody who has just followed an
                 invitation. Behind the door, which is where they meet it for the
@@ -31,7 +48,7 @@
             >
                 {{ __('Sit to play') }}
             </flux:button>
-        @else
+        @elseif ($game->isOpen())
             {{--
                 Whose turn it is, unless there is nobody to take one — a table
                 with one person at it does not need telling that white is to
@@ -39,7 +56,7 @@
                 instead, and goes back to the turn the moment somebody sits.
             --}}
             <flux:button
-                x-show="seat && here < 2 && !over"
+                x-show="seat && alone && !over"
                 x-cloak
                 size="sm"
                 variant="primary"
@@ -49,7 +66,7 @@
                 <span x-text="invited || '{{ __('Invite opponent') }}'"></span>
             </flux:button>
 
-            <flux:text x-show="!(seat && here < 2 && !over)" x-text="status"></flux:text>
+            <flux:text x-show="!(seat && alone && !over)" x-text="status"></flux:text>
         @endif
 
         {{--
