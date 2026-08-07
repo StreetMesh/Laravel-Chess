@@ -47,6 +47,17 @@ abstract class TestCase extends Orchestra
         $app['config']->set('streetmesh.venue.hub', 'wss://hub.invalid');
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         $app['config']->set('database.default', 'testing');
+
+        /*
+         * The same referential integrity the real database has.
+         *
+         * SQLite leaves foreign keys off unless asked, so a delete that
+         * cascades in production quietly leaves the child rows behind here.
+         * A seat outliving the permission it belongs to is not a shape any
+         * server ever sees, and testing against it hid a crash in the lobby
+         * for a state that only arises when somebody revokes.
+         */
+        $app['config']->set('database.connections.testing.foreign_key_constraints', true);
         $app['config']->set('streetmesh.host', 'games.test');
         $app['config']->set('app.url', 'https://games.test');
         $app['url']->forceRootUrl('https://games.test');

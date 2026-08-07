@@ -9,6 +9,7 @@ use StreetMesh\Protocol\Laravel\Permissions\Delegation;
 use StreetMesh\Protocol\P256;
 use StreetMesh\Protocol\Scope;
 use StreetMesh\Venue\Gatherings\Gathering;
+use StreetMesh\Venue\Visitors;
 
 /**
  * Chess as the venue sees it.
@@ -69,6 +70,35 @@ class GameTest extends TestCase
         $game = $games->open($this->player('alice'));
 
         $this->assertSame('black', $games->join($game, $this->player('bob'))->seat);
+    }
+
+    /**
+     * A game whose white player gave their permission back.
+     *
+     * A seat belongs to a delegation and goes with it, so revoking leaves a
+     * game with a black player and no white — a shape the lobby had never been
+     * shown. It read `$players['white']` directly, an undefined key is an
+     * exception once debug is off, and so the lobby returned 500 to everybody,
+     * over one visitor's revoked permission.
+     */
+    public function test_the_lobby_survives_a_game_whose_player_revoked(): void
+    {
+        $games = $this->games();
+
+        $white = $this->player('alice');
+        $black = $this->player('bob');
+
+        $game = $games->open($white);
+        $games->join($game, $black);
+
+        // Revoking is a delete, and the seat goes with it.
+        $white->delete();
+
+        session([Visitors::SESSION_KEY => $black->id]);
+
+        $this->get(route('chess.lobby'))
+            ->assertOk()
+            ->assertSee('bob is waiting for an opponent');
     }
 
     /**

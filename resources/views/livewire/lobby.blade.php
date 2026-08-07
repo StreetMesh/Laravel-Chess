@@ -183,11 +183,21 @@ new #[Title('Chess')] class extends Component
                     between the same two people apart, and what somebody would
                     read back to you.
                 --}}
-                @php($players = $this->players($game))
+                {{--
+                    Both chairs named, even when nobody is in one.
+
+                    `players()` returns only the seats that exist, and a seat
+                    stops existing the moment its permission is given back —
+                    revoking deletes the delegation and the seat goes with it.
+                    So a game can be left with a black player and no white, and
+                    every line below that read `$players['white']` was one
+                    undefined key away from taking the whole lobby down. It did.
+                --}}
+                @php($players = $this->players($game) + ['white' => '', 'black' => ''])
 
                 <flux:heading>{{ __('Game :key', ['key' => Str::of($game->key)->substr(-6)]) }}</flux:heading>
 
-                @if (($players['white'] ?? '') !== '' || ($players['black'] ?? '') !== '')
+                @if ($players['white'] !== '' || $players['black'] !== '')
                     {{--
                         Labels rather than whole addresses, the same convention
                         the board uses. The whole handle stays in the title.
@@ -196,9 +206,9 @@ new #[Title('Chess')] class extends Component
 
                     <flux:text
                         class="text-sm"
-                        :title="trim(($players['white'] ?? '').' '.($players['black'] ?? ''))"
+                        :title="trim($players['white'].' '.$players['black'])"
                     >
-                        @if (($players['white'] ?? '') !== '' && ($players['black'] ?? '') !== '')
+                        @if ($players['white'] !== '' && $players['black'] !== '')
                             {{ $label($players['white']) }} {{ __('vs') }} {{ $label($players['black']) }}
                         @else
                             {{ __(':player is waiting for an opponent', [
