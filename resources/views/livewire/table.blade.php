@@ -93,13 +93,22 @@ new #[Title('Chess')] class extends Component
     rest.
 --}}
 {{--
-    Takes the height it is given, so the board can sit in the middle of it.
+    Takes the height it is given, so the board can sit in the middle of it —
+    above `sm`, and not on a phone.
 
     Flux's main area is a row of the body's grid and already has a height; this
     fills it rather than collapsing to the height of a chessboard, and the group
     below centres inside what the header leaves.
+
+    On a phone it does neither. The body is `min-h-screen`, which is `100vh`,
+    and on iOS that is the *large* viewport — the height with the toolbar
+    hidden. Centring inside a box taller than the screen pushes the bottom of
+    the board underneath the address bar, where it cannot be scrolled to.
+
+    There is nothing to centre there anyway: the board takes the full width, so
+    the screen is already full. Let it flow from the top and scroll like a page.
 --}}
-<div class="flex min-h-full flex-col gap-6">
+<div class="flex flex-col gap-6 sm:min-h-full">
     @php($game = $this->game())
 
     @if ($game === null)
@@ -137,8 +146,8 @@ new #[Title('Chess')] class extends Component
             @include('chess::header')
 
             @if (($outcome['positions'] ?? []) !== [])
-                {{-- Centred in what the header leaves, rather than stacked under it. --}}
-                <div class="m-auto flex w-full flex-col items-center gap-4">
+                {{-- Centred in what the header leaves, above `sm`. See the top of this file. --}}
+                <div class="flex w-full flex-col items-center gap-4 sm:m-auto">
                     @include('chess::player', ['side' => 'far'])
 
                     @include('chess::board')
@@ -196,8 +205,8 @@ new #[Title('Chess')] class extends Component
                 is on neither side, black is above the way a board is drawn when
                 nobody in particular is looking at it.
             --}}
-            {{-- Centred in what the header leaves, rather than stacked under it. --}}
-            <div class="m-auto flex w-full flex-col items-center gap-4">
+            {{-- Centred in what the header leaves, above `sm`. See the top of this file. --}}
+            <div class="flex w-full flex-col items-center gap-4 sm:m-auto">
                 @include('chess::player', ['side' => 'far'])
 
                 @include('chess::board')
