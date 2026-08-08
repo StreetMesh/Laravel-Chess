@@ -19,7 +19,17 @@ import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const TYPE = 'com_streetmesh_games_chess'
-const HUB = 'http://127.0.0.1:2567'
+/*
+ * The hub this asks, which is usually the one `./hub-serve` starts. Nameable so
+ * a check can be run against a second hub on another port without stopping the
+ * one already serving a browser.
+ *
+ * One address rather than two. This asks the hub over both a websocket and
+ * HTTP, and when they were separate constants a check pointed somewhere else
+ * quietly went on asking the old hub for the result of a game it had never
+ * heard of.
+ */
+const HUB = process.env.HUB_URL ?? 'http://127.0.0.1:2567'
 
 let failures = 0
 
@@ -49,7 +59,7 @@ async function ask(room: string): Promise<Record<string, unknown> | null> {
 }
 
 const table = `settle-${process.pid}`
-const client = new Client('ws://127.0.0.1:2567')
+const client = new Client(HUB.replace(/^http/, 'ws'))
 
 const white = await client.joinOrCreate(TYPE, { ticket: mint(table, 'white', 'alice'), room: table })
 const black = await client.joinById(white.roomId, { ticket: mint(table, 'black', 'bob'), room: table })

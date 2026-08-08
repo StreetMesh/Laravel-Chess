@@ -42,7 +42,7 @@ function mint(room: string, seat: string, who: string): string {
 }
 
 const table = `watch-${process.pid}`
-const client = new Client('ws://127.0.0.1:2567')
+const client = new Client((process.env.HUB_URL ?? 'http://127.0.0.1:2567').replace(/^http/, 'ws'))
 
 const white = await client.joinOrCreate(TYPE, { ticket: mint(table, 'white', 'alice'), room: table })
 const black = await client.joinById(white.roomId, { ticket: mint(table, 'black', 'bob'), room: table })

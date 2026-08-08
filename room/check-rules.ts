@@ -45,7 +45,7 @@ function mint(room: string, seat: string, who: string): string {
 }
 
 const table = `rules-${process.pid}`
-const client = new Client('ws://127.0.0.1:2567')
+const client = new Client((process.env.HUB_URL ?? 'http://127.0.0.1:2567').replace(/^http/, 'ws'))
 
 // Two people, not one person twice — nobody may take two seats, and a check
 // that minted the same visitor twice would only ever discover that.

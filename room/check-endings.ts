@@ -41,7 +41,13 @@ function mint(room: string, seat: string, who: string): string {
 }
 
 const settle = (ms = 350) => new Promise((done) => setTimeout(done, ms))
-const client = new Client('ws://127.0.0.1:2567')
+
+/*
+ * The hub this asks, which is usually the one `./hub-serve` starts. Nameable so
+ * a check can be run against a second hub on another port without stopping the
+ * one already serving a browser.
+ */
+const client = new Client((process.env.HUB_URL ?? 'http://127.0.0.1:2567').replace(/^http/, 'ws'))
 
 async function table(name: string) {
   const white = await client.joinOrCreate(TYPE, { ticket: mint(name, 'white', 'alice'), room: name })
@@ -65,6 +71,50 @@ console.log('\nResigning')
 
   await white.leave()
   await black.leave()
+}
+
+/*
+ * The case this is actually used in.
+ *
+ * Somebody's opponent closes their tab and never comes back. The seat is still
+ * theirs — that is what lets anybody return to their own game — so the board
+ * goes on offering Resign, and it has to work. This asked who was *connected*,
+ * which meant confirming a resignation and watching nothing happen at all.
+ */
+console.log('\nResigning a game the other player walked away from')
+{
+  const name = `abandoned-${process.pid}`
+  const { white, black } = await table(name)
+
+  await black.leave()
+  await settle()
+
+  white.send('resign')
+  await settle()
+
+  report('the game can still be given up', white.state.outcome === 'resignation', white.state.outcome || 'still going')
+  report('and the absent player won it', white.state.winner === 'black', white.state.winner || 'nobody')
+
+  await white.leave()
+}
+
+/*
+ * And why the guard is there at all. One seat is somebody waiting rather than
+ * somebody losing, and a table that could be resigned before anybody arrived
+ * would write a defeat into the records for a game nobody played.
+ */
+console.log('\nA table with nobody to resign to')
+{
+  const name = `alone-${process.pid}`
+  const white = await client.joinOrCreate(TYPE, { ticket: mint(name, 'white', 'alice'), room: name })
+  await settle()
+
+  white.send('resign')
+  await settle()
+
+  report('a game nobody joined cannot be lost', white.state.outcome === '', white.state.outcome || 'still going')
+
+  await white.leave()
 }
 
 console.log('\nA draw, which takes two')
